@@ -1,0 +1,15 @@
+{
+	// Shirone 是纯静态主题：只部署 dist/ 的静态资源，不使用 Worker 代码。
+	// 关键点：这里**故意不写 `main` 字段**——没有 Worker 入口，Cloudflare
+	// 就不会自动往 astro.config.mjs 注入 `adapter: @astrojs/cloudflare`
+	// （那个 adapter 会用 workerd 预渲染，而本项目的 Markdown 管线依赖
+	// Node 原生模块 sharp，在 workerd 下会报 "No such module chunks/sharp"）。
+	"$schema": "https://json.schemastore.org/wrangler.json",
+	// 改成你在 Cloudflare 上已有的 Worker 名称，否则会新建一个 Worker。
+	"name": "hanaya",
+	"compatibility_date": "2026-09-13",
+	"assets": {
+		"directory": "./dist",
+		"not_found_handling": "404-page",
+	},
+}
