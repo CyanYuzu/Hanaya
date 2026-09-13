@@ -42,7 +42,7 @@ import { withUserConfig } from "../utils/config-overlay.ts";
 export const commentConfig: CommentConfig = withUserConfig("comment", {
 	/** 全局评论总开关：false 时完全不加载评论脚本与 DOM */
 	enable: true,
-	/** 评论提供商类型："none" | "twikoo" | "giscus" */
+	/** 评论提供商类型："none" | "twikoo" | "giscus" | "remark42" */
 	provider: "remark42",
 	/** 是否开启视口懒加载：滚动进入视口才动态加载评论组件（推荐 true） */
 	lazy: true,
@@ -83,7 +83,8 @@ export const commentConfig: CommentConfig = withUserConfig("comment", {
 		lang: "auto",
 		/** giscus client.js 地址；自托管 giscus 时替换为自有地址 */
 		scriptUrl: "https://giscus.app/client.js",
-	},	/** Remark42 专有配置（自托管评论服务，支持 OAuth2 / OIDC 登录） */
+	},
+	/** Remark42 专有配置（自托管评论服务，支持 OAuth2 / OIDC 登录） */
 	remark42: {
 		/** Remark42 服务地址，如 "https://comments.example.com"（必填；末尾斜杠会自动去除） */
 		host: "https://comments.cyanyuzu.work",
@@ -95,7 +96,8 @@ export const commentConfig: CommentConfig = withUserConfig("comment", {
 		scriptUrl: "",
 		/** 是否隐藏 Remark42 内置页脚签名 */
 		noFooter: true,
-	},});
+	},
+});
 
 export type ResolvedCommentOptions =
 	| {
@@ -108,11 +110,16 @@ export type ResolvedCommentOptions =
 			lazy: boolean;
 			giscus: GiscusConfig;
 	  }
-	  | {
+	| {
 			provider: "remark42";
 			lazy: boolean;
 			remark42: Remark42Config;
 	  }
+	| null;
+
+/**
+ * 解析并校验评论配置。未启用、提供商为 none 或关键参数缺失时返回 null。
+ * 校验收敛在此纯函数中，消费组件只消费解析结果并短路。
  */
 export function resolveCommentOptions(
 	config: CommentConfig,

@@ -46,16 +46,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v7.0.1
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        uses: pnpm/action-setup@v6.1.0
         with:
           version: 9.14.4
           run_install: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
           cache: pnpm
@@ -75,7 +75,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${VPS_SSH_KEY:-}" ]; then
-            echo "::error::缺少仓库 Secret VPS_SSH_KEY"
+            echo "::error::缺少仓库 Secret VPS_SSH_KEY —— 请到 Settings → Secrets and variables → Actions → Repository secrets 添加"
             exit 1
           fi
           mkdir -p ~/.ssh
