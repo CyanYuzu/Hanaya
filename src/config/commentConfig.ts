@@ -1,6 +1,7 @@
 import type {
 	CommentConfig,
 	GiscusConfig,
+	Remark42Config,
 	TwikooConfig,
 } from "@/types/commentConfig";
 import { withUserConfig } from "../utils/config-overlay.ts";
@@ -27,12 +28,22 @@ import { withUserConfig } from "../utils/config-overlay.ts";
  * 5. （可选）调整 `mapping`、`reactionsEnabled`、`inputPosition`、
  *    `theme.light` / `theme.dark`（giscus 主题键或自定义主题 CSS URL）、
  *    `lang` 与 `scriptUrl`（自托管 giscus 时替换）。
+ *
+ * 【开启 Remark42 评论配置步骤（自托管 + OIDC）】
+ * 1. 自托管 Remark42 服务端（Docker 单容器），并配置至少一种登录方式；
+ *    要接入 Logto 等 OIDC 服务，用自定义 OAuth2 参数：
+ *    `AUTH_CUSTOM_NAME` / `AUTH_CUSTOM_CID` / `AUTH_CUSTOM_CSEC` /
+ *    `AUTH_CUSTOM_AUTH_URL` / `AUTH_CUSTOM_TOKEN_URL` / `AUTH_CUSTOM_INFO_URL`
+ *    （回调地址固定为 `https://<remark42 域名>/auth/<AUTH_CUSTOM_NAME>/callback`）；
+ * 2. 将 `enable` 置为 `true`，并将 `provider` 设置为 `"remark42"`；
+ * 3. 填写 `remark42.host`（服务地址）与 `remark42.siteId`（需与服务端 `SITE` 一致）；
+ * 4. （可选）调整 `remark42.lang`（默认跟随站点语言）与 `remark42.scriptUrl`。
  */
 export const commentConfig: CommentConfig = withUserConfig("comment", {
 	/** 全局评论总开关：false 时完全不加载评论脚本与 DOM */
-	enable: false,
+	enable: true,
 	/** 评论提供商类型："none" | "twikoo" | "giscus" */
-	provider: "none",
+	provider: "remark42",
 	/** 是否开启视口懒加载：滚动进入视口才动态加载评论组件（推荐 true） */
 	lazy: true,
 	/** Twikoo 专有配置 */
@@ -72,8 +83,19 @@ export const commentConfig: CommentConfig = withUserConfig("comment", {
 		lang: "auto",
 		/** giscus client.js 地址；自托管 giscus 时替换为自有地址 */
 		scriptUrl: "https://giscus.app/client.js",
-	},
-});
+	},	/** Remark42 专有配置（自托管评论服务，支持 OAuth2 / OIDC 登录） */
+	remark42: {
+		/** Remark42 服务地址，如 "https://comments.example.com"（必填；末尾斜杠会自动去除） */
+		host: "https://comments.cyanyuzu.work",
+		/** 站点标识，需与服务端 `SITE` 环境变量一致（必填） */
+		siteId: "hanaya",
+		/** 评论界面语言："auto"（跟随站点）| Remark42 语言码（如 "zh"、"zh-tw"、"en"） */
+		lang: "auto",
+		/** embed.mjs 地址；留空时按 "<host>/web/embed.mjs" 推导 */
+		scriptUrl: "",
+		/** 是否隐藏 Remark42 内置页脚签名 */
+		noFooter: true,
+	},});
 
 export type ResolvedCommentOptions =
 	| {
@@ -86,11 +108,11 @@ export type ResolvedCommentOptions =
 			lazy: boolean;
 			giscus: GiscusConfig;
 	  }
-	| null;
-
-/**
- * 解析并校验评论配置。未启用、提供商为 none 或关键参数缺失时返回 null。
- * 校验收敛在此纯函数中，消费组件只消费解析结果并短路。
+	  | {
+			provider: "remark42";
+			lazy: boolean;
+			remark42: Remark42Config;
+	  }
  */
 export function resolveCommentOptions(
 	config: CommentConfig,
@@ -135,6 +157,24 @@ export function resolveCommentOptions(
 					dark: config.giscus.theme?.dark?.trim() || "dark",
 				},
 				scriptUrl: config.giscus.scriptUrl?.trim(),
+			},
+		};
+	}
+	if (config.provider === "remark42") {
+		const host = config.remark42.host?.trim().replace(/\/+$/, "");
+		const siteId = config.remark42.siteId?.trim();
+		if (!host || !siteId) {
+			return null;
+		}
+		return {
+			provider: "remark42",
+			lazy: config.lazy,
+			remark42: {
+				...config.remark42,
+				host,
+				siteId,
+				scriptUrl:
+					config.remark42.scriptUrl?.trim() || `${host}/web/embed.mjs`,
 			},
 		};
 	}

@@ -1,0 +1,276 @@
+---
+import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
+import stylus from "stylus";
+import type { CommentContext, Remark42Config } from "@/types/commentConfig";
+
+interface Props {
+	context: CommentContext;
+	config: Remark42Config;
+	lazy?: boolean;
+}
+
+const { context, config, lazy = true } = Astro.props;
+
+/**
+ * 站点语言码 → Remark42 locale（构建期纯函数）。
+ * Remark42 使用简化码：简体中文是 "zh"（非 "zh-CN"），繁体是 "zh-tw"，巴西葡萄牙语是 "bp"。
+ * 未收录的语言回退 "en"。
+ */
+const REMARK42_LOCALES = new Set([
+	"ar",
+	"be",
+	"bg",
+	"bp",
+	"cs",
+	"de",
+	"en",
+	"es",
+	"fa",
+	"fi",
+	"fr",
+	"he",
+	"it",
+	"ja",
+	"ko",
+	"mk",
+	"pl",
+	"ro",
+	"ru",
+	"sv",
+	"th",
+	"tr",
+	"ua",
+	"vi",
+	"zh",
+	"zh-tw",
+]);
+
+function resolveRemark42Locale(lang: string): string {
+	const normalized = (lang || "en").toLowerCase();
+	if (normalized === "zh_cn") return "zh";
+	if (normalized === "zh_tw" || normalized === "zh_hk") return "zh-tw";
+	if (normalized === "pt_br") return "bp";
+	const primary = normalized.split(/[-_]/)[0];
+	return REMARK42_LOCALES.has(primary) ? primary : "en";
+}
+
+const resolvedLocale =
+	config.lang === "auto" ? resolveRemark42Locale(context.language) : config.lang;
+
+const remark42Stylus = `/* ==========================================================================
+	   Remark42 外壳样式（Shell Only）
+	   Remark42 自绘全部评论 UI（内部 iframe），此处只接管外壳：
+	   容器宽度、加载骨架与明暗自适应。
+	   骨架退场无需 MutationObserver：Remark42 会在初始化后自动移除
+	   #remark42 内的占位内容（官方约定）。
+	   令牌规范：100% 消费 Shirone M3E 语义令牌，天然支持明暗模式自适应。
+	   ========================================================================== */
+
+	.shirone-remark42-wrapper
+		width: 100%
+		min-height: 10rem
+
+		#remark42
+			width: 100%
+
+	.remark42-skeleton
+		display: flex
+		flex-direction: column
+		align-items: center
+		justify-content: center
+		gap: var(--m3e-space-3, 0.75rem)
+		width: 100%
+		min-height: 10rem
+		padding-block: var(--m3e-space-6, 1.5rem)
+		color: var(--on-surface-variant)
+		font: var(--m3e-type-body-small, inherit)
+		font-size: 0.875rem
+
+		&__spinner
+			width: 1.5rem
+			height: 1.5rem
+			border: 2px solid var(--outline-variant)
+			border-top-color: var(--primary)
+			border-radius: 50%
+			animation: remark42-spin 0.8s linear infinite
+
+	@keyframes remark42-spin
+		to
+			transform: rotate(360deg)
+
+	/* 减少动效偏好：静态呈现，仅保留颜色区分 */
+	html.motion-reduced .remark42-skeleton__spinner
+		animation: none
+		border-top-color: var(--primary)`;
+
+const remark42Styles = await new Promise<string>((resolve, reject) => {
+	stylus.render(remark42Stylus, (error, css) => {
+		if (error) reject(error);
+		else resolve(css);
+	});
+});
+---
+
+<div
+	class="shirone-remark42-wrapper w-full"
+	data-remark42-host={config.host}
+	data-remark42-site-id={config.siteId}
+	data-remark42-script-url={config.scriptUrl}
+	data-remark42-path={context.path}
+	data-remark42-locale={resolvedLocale}
+	data-remark42-no-footer={config.noFooter ? "1" : "0"}
+	data-remark42-lazy={lazy ? "true" : "false"}
+>
+	<!--
+		Remark42 评论容器：id 必须是 "remark42"（官方约定）。
+		容器内的占位内容会在组件初始化完成后被自动移除，因此骨架屏直接放在此处，
+		无需额外的 :has() 或 MutationObserver 来收场。
+	-->
+	<div id="remark42">
+		<div class="remark42-skeleton" role="status">
+			<span class="remark42-skeleton__spinner" aria-hidden="true"></span>
+			<span>{i18n(I18nKey.commentsLoading)}</span>
+		</div>
+	</div>
+
+	<!-- 无 JavaScript 降级提示 -->
+	<noscript>
+		<div class="p-4 rounded-[var(--shape-corner-m)] bg-[var(--surface-container-high)] text-[var(--on-surface-variant)] text-sm text-center">
+			{i18n(I18nKey.commentsRequiresJavaScript)}
+		</div>
+	</noscript>
+</div>
+
+<style is:inline set:html={remark42Styles}></style>
+
+<script>
+	/**
+	 * Remark42 挂载说明：
+	 *
+	 * embed.mjs 是 ES module，浏览器按 URL 只会执行一次 —— 因此「只注入一次」既安全又是必需的。
+	 * 这与 Giscus / Twikoo 相反：那两个是非 module 的一次性 IIFE，必须每次换页重新注入 script 标签才能重跑挂载逻辑。
+	 *
+	 * 换页时不能重新加载脚本，而要复用全局 `window.REMARK42` 的官方 SPA API：
+	 *   - `createInstance({ node, ...config })` 在指定容器上创建实例；
+	 *   - `destroy()` 销毁上一页的实例（其 DOM 已被 Swup 替换，不销毁会残留监听）；
+	 *   - `changeTheme("light" | "dark")` 运行时切换主题。
+	 * 脚本尚未就绪时通过 `REMARK42::ready` 事件补挂载。
+	 */
+
+	interface Remark42Instance {
+		destroy?: () => void;
+	}
+
+	interface Remark42Global {
+		createInstance?: (config: Record<string, unknown>) => Remark42Instance;
+		changeTheme?: (theme: string) => void;
+	}
+
+	let remark42Instance: Remark42Instance | null = null;
+	let remark42ScriptRequested = false;
+
+	function getRemark42(): Remark42Global | null {
+		return (window as unknown as { REMARK42?: Remark42Global }).REMARK42 ?? null;
+	}
+
+	function currentIsDark(): boolean {
+		return document.documentElement.classList.contains("dark");
+	}
+
+	/** 按需注入 embed.mjs，全局只注入一次（module 语义天然去重）。 */
+	function ensureEmbedScript(wrapper: HTMLElement): void {
+		if (remark42ScriptRequested) return;
+		const src = wrapper.dataset.remark42ScriptUrl;
+		if (!src) return;
+		remark42ScriptRequested = true;
+		const script = document.createElement("script");
+		script.type = "module";
+		script.async = true;
+		script.defer = true;
+		script.src = src;
+		script.dataset.remark42Embed = "true";
+		(document.head || document.body).appendChild(script);
+	}
+
+	function mountRemark42Instance(wrapper: HTMLElement): void {
+		const host = wrapper.dataset.remark42Host;
+		const siteId = wrapper.dataset.remark42SiteId;
+		const node = wrapper.querySelector<HTMLElement>("#remark42");
+		if (!host || !siteId || !node) return;
+
+		ensureEmbedScript(wrapper);
+
+		const create = () => {
+			const api = getRemark42();
+			// 容器可能已被下一次 Swup 替换，此时不再创建
+			if (!api?.createInstance || !node.isConnected) return;
+
+			try {
+				remark42Instance?.destroy?.();
+			} catch {
+				// 旧实例可能已随被移除的 DOM 失效，忽略
+			}
+			remark42Instance = null;
+
+			remark42Instance = api.createInstance({
+				node,
+				host,
+				site_id: siteId,
+				url: `${window.location.origin}${
+					wrapper.dataset.remark42Path || window.location.pathname
+				}`,
+				components: ["embed"],
+				theme: currentIsDark() ? "dark" : "light",
+				locale: wrapper.dataset.remark42Locale ?? "en",
+				no_footer: wrapper.dataset.remark42NoFooter === "1",
+			});
+		};
+
+		if (getRemark42()?.createInstance) {
+			create();
+		} else {
+			window.addEventListener("REMARK42::ready", create, { once: true });
+		}
+	}
+
+	function setupAllRemark42(): void {
+		const wrappers = document.querySelectorAll<HTMLElement>(
+			".shirone-remark42-wrapper",
+		);
+		wrappers.forEach((wrapper) => {
+			const isLazy = wrapper.dataset.remark42Lazy === "true";
+			if (isLazy && "IntersectionObserver" in window) {
+				// 同一 wrapper 只观察一次，避免 Swup 两个生命周期事件重复登记
+				if (wrapper.dataset.remark42Observed === "true") return;
+				wrapper.dataset.remark42Observed = "true";
+				const observer = new IntersectionObserver(
+					(entries, obs) => {
+						if (entries[0].isIntersecting) {
+							obs.disconnect();
+							mountRemark42Instance(wrapper);
+						}
+					},
+					{ rootMargin: "200px" },
+				);
+				observer.observe(wrapper);
+				return;
+			}
+			mountRemark42Instance(wrapper);
+		});
+	}
+
+	// 明暗主题同步：走 Remark42 官方运行时 API，无需重载评论
+	window.addEventListener("shirone:theme-change", (event) => {
+		const detail = (event as CustomEvent<{ isDark?: boolean }>).detail;
+		const isDark = detail?.isDark ?? currentIsDark();
+		getRemark42()?.changeTheme?.(isDark ? "dark" : "light");
+	});
+
+	// 首次页面直达加载
+	setupAllRemark42();
+
+	// 响应 Swup 页面替换生命周期
+	document.addEventListener("swup:content:replace", setupAllRemark42);
+	document.addEventListener("swup:page:view", setupAllRemark42);
+</script>

@@ -28,6 +28,11 @@ const Giscus =
 	options.provider === "giscus"
 		? (await import("@components/organisms/comment/Giscus.astro")).default
 		: null;
+
+const Remark42 =
+	options.provider === "remark42"
+		? (await import("@components/organisms/comment/Remark42.astro")).default
+		: null;
 ---
 
 <section
@@ -56,6 +61,14 @@ const Giscus =
 			<Giscus
 				context={context}
 				config={options.giscus}
+				lazy={options.lazy}
+			/>
+		)}
+
+		{options.provider === "remark42" && Remark42 && (
+			<Remark42
+				context={context}
+				config={options.remark42}
 				lazy={options.lazy}
 			/>
 		)}

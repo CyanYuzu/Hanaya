@@ -11,15 +11,13 @@ export const profileConfig: ProfileConfig = withUserConfig("profile", {
 	bio: "The rain remembers what the sky forgot to say.",
 	links: [
 		{
-			name: "BiliBili",
-			icon: "fa6-brands:twitter", // Visit https://icones.js.org/ for icon codes
-			// You will need to install the corresponding icon set if it's not already included
-			// `pnpm add @iconify-json/<icon-set-name>`
+			name: "Bilibili",
+			icon: "fa6-brands:bilibili", // 图标代码查询：https://icones.js.org/
 			url: "https://space.bilibili.com/631749766",
 		},
 		{
 			name: "Email",
-			icon: "fa6-brands:steam",
+			icon: "fa6-solid:envelope",
 			url: "mailto:cyanyuzu@qq.com",
 		},
 		{

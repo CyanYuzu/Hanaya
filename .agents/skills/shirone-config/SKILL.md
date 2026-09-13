@@ -23,7 +23,7 @@ description: Configuring a Shirone blog site - site identity, theme colors, navi
 | `sidebarConfig.ts` | 侧栏编排:`arrangement` 单/双栏、`side`、widget 清单与页面过滤 |
 | `postListConfig.ts` | 分页大小、list/grid 布局 |
 | `articleConfig.ts` | 相关文章、分享与海报 |
-| `commentConfig.ts` | 评论系统(默认关闭,Twikoo / Giscus 双 Provider) |
+| `commentConfig.ts` | 评论系统(默认关闭,Twikoo / Giscus / Remark42 三 Provider) |
 | `umamiConfig.ts` | Umami 数据统计：公开分享统计读取，以及可选的官方访问采集脚本 |
 | `musicConfig.ts` | 侧栏音乐(当前默认启用，可手动关闭；local/custom/meting/mixed 四种模式) |
 | `animeConfig.ts` | 追番页数据源:本地 / Bangumi 快照 / Bilibili 快照 |

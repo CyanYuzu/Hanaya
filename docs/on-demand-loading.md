@@ -29,6 +29,7 @@
 | `src/components/organisms/comment/CommentSection.astro` | 消费方：短路 + 动态导入 |
 | `src/components/organisms/comment/Twikoo.astro` | 特性组件：样式内嵌 + 运行时懒加载 |
 | `src/components/organisms/comment/Giscus.astro` | 第二个 Provider 参考实现：一次性脚本注入 + 主题事件同步 |
+| `src/components/organisms/comment/Remark42.astro` | 第三个 Provider：ES module 仅注入一次，靠官方 SPA API（`createInstance` / `destroy` / `changeTheme`）配合 Swup 换页与主题同步 |
 | `src/types/stylus.d.ts` | `stylus` 包最小类型声明（构建期编译样式用） |
 | `src/utils/script-loader.ts` | `loadScriptOnce()` 动态加载第三方 SDK 并去重 |
 

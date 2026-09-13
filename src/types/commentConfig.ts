@@ -1,4 +1,4 @@
-export type CommentProvider = "none" | "twikoo" | "giscus";
+export type CommentProvider = "none" | "twikoo" | "giscus" | "remark42";
 
 export interface TwikooConfig {
 	/** Twikoo 环境 ID 或后端服务地址 URL */
@@ -22,6 +22,8 @@ export interface CommentConfig {
 	twikoo: TwikooConfig;
 	/** Giscus 专属配置 */
 	giscus: GiscusConfig;
+	/** Remark42 专属配置 */
+	remark42: Remark42Config;
 }
 
 export interface GiscusConfig {
@@ -49,6 +51,20 @@ export interface GiscusConfig {
 	lang: "auto" | string;
 	/** giscus client.js 地址；使用自托管 giscus 时替换为自有地址 */
 	scriptUrl: string;
+}
+
+/** Remark42 配置（自托管评论服务，支持 OAuth2 与通用 OIDC 登录，如 Logto） */
+export interface Remark42Config {
+	/** Remark42 服务地址，如 "https://comments.example.com"（必填；末尾斜杠会被自动去除） */
+	host: string;
+	/** 站点标识，需与服务端 SITE 环境变量一致（必填） */
+	siteId: string;
+	/** 评论界面语言："auto" 跟随站点语言，也可指定 Remark42 语言码（如 "zh"、"zh-tw"、"en"） */
+	lang: "auto" | string;
+	/** embed.mjs 地址；留空时按 "<host>/web/embed.mjs" 推导 */
+	scriptUrl: string;
+	/** 是否隐藏 Remark42 内置页脚签名（默认 true，保持站点视觉整洁） */
+	noFooter: boolean;
 }
 
 /** 传递给具体 Provider 组件的归一化上下文 */

@@ -14,35 +14,127 @@ import type { TrackDescriptor } from "@/types/musicConfig";
  */
 export const musicTracks: readonly TrackDescriptor[] = [
 	{
-		id: "dazbee",
-		title: "口笛で愛は歌えない",
-		artist: "Dazbee",
-		cover: "assets/images/music/dazbee.webp",
-		source: "/assets/music/url/dazbee.mp3",
-		duration: 241,
+		id: "happy",
+		title: "Happy",
+		source: "https://img.cyanyuzu.work/audios/Happy.mp3",
 	},
 	{
-		id: "hitori",
-		title: "ひとり上手",
-		artist: "Kaya",
-		cover: "assets/images/music/hitori.webp",
-		source: "/assets/music/url/hitori.mp3",
-		duration: 253,
+		id: "colorful-diary-instrumental",
+		title: "【カラフル Diary】Instrumental ver",
+		source:
+			"https://img.cyanyuzu.work/audios/%E3%80%8E%E3%82%AB%E3%83%A9%E3%83%95%E3%83%AB%20Diary%E3%80%8FInstrumental%20ver.mp3",
 	},
 	{
-		id: "xryx",
-		title: "眩耀夜行",
-		artist: "スリーズブーケ",
-		cover: "assets/images/music/xryx.webp",
-		source: "/assets/music/url/xryx.mp3",
-		duration: 245,
+		id: "clover-instrumental",
+		title: "【クローバー】Instrumental ver",
+		source:
+			"https://img.cyanyuzu.work/audios/%E3%80%8E%E3%82%AF%E3%83%AD%E3%83%BC%E3%83%90%E3%83%BC%E3%80%8FInstrumental%20ver.mp3",
 	},
 	{
-		id: "cl",
-		title: "春雷の頃",
-		artist: "22/7",
-		cover: "assets/images/music/cl.webp",
-		source: "/assets/music/url/cl.mp3",
-		duration: 242,
+		id: "ano-koro",
+		title: "あの頃",
+		source: "https://img.cyanyuzu.work/audios/%E3%81%82%E3%81%AE%E9%A1%B7.mp3",
+	},
+	{
+		id: "arigatou",
+		title: "ありがとう",
+		source: "https://img.cyanyuzu.work/audios/%E3%81%82%E3%82%8A%E3%81%8C%E3%81%A8%E3%81%86.mp3",
+	},
+	{
+		id: "itsumademo-kono-mamade",
+		title: "いつまでもこのままで",
+		source:
+			"https://img.cyanyuzu.work/audios/%E3%81%84%E3%81%A4%E3%81%BE%E3%81%A7%E3%82%82%E3%81%93%E3%81%AE%E3%81%BE%E3%81%BE%E3%81%A7.mp3",
+	},
+	{
+		id: "kakegae-no-nai-mono",
+		title: "かけがえのないもの",
+		source:
+			"https://img.cyanyuzu.work/audios/%E3%81%8B%E3%81%91%E3%81%8C%E3%81%88%E3%81%AE%E3%81%AA%E3%81%84%E3%82%82%E3%81%AE.mp3",
+	},
+	{
+		id: "doushitara-ii-no",
+		title: "どうしたらいいの",
+		source:
+			"https://img.cyanyuzu.work/audios/%E3%81%A9%E3%81%86%E3%81%97%E3%81%9F%E3%82%89%E3%81%84%E3%81%84%E3%81%AE.mp3",
+	},
+	{
+		id: "nigiyakana-jikan",
+		title: "にぎやかな時間",
+		source:
+			"https://img.cyanyuzu.work/audios/%E3%81%AB%E3%81%8E%E3%82%84%E3%81%8B%E3%81%AA%E6%97%B6%E9%97%B4.mp3",
+	},
+	{
+		id: "clover-short",
+		title: "クローバー ショートver",
+		source:
+			"https://img.cyanyuzu.work/audios/%E3%82%AF%E3%83%AD%E3%83%BC%E3%83%90%E3%83%BC%20%E3%82%B7%E3%83%A7%E3%83%BC%E3%83%88ver.mp3",
+	},
+	{
+		id: "issho-ni-ikou-ne",
+		title: "一緒にいこうね♪",
+		source:
+			"https://img.cyanyuzu.work/audios/%E4%B8%80%E7%BB%AA%E3%81%AB%E3%81%84%E3%81%93%E3%81%86%E3%81%AD%E2%99%AA.mp3",
+	},
+	{
+		id: "tsutaetai-yo",
+		title: "伝えたいよ",
+		source: "https://img.cyanyuzu.work/audios/%E4%BC%9D%E3%81%88%E3%81%9F%E3%81%84%E3%82%88.mp3",
+	},
+	{
+		id: "kimi-to-no-kyoukai-sen",
+		title: "君との境界线",
+		source:
+			"https://img.cyanyuzu.work/audios/%E5%90%9B%E3%81%A8%E3%81%AE%E5%A2%83%E7%95%8C%E7%BA%BF.mp3",
+	},
+	{
+		id: "otona-ni-naritai",
+		title: "大人になりたい",
+		source:
+			"https://img.cyanyuzu.work/audios/%E5%A4%A7%E4%BA%BA%E3%81%AB%E3%81%AA%E3%82%8A%E3%81%9F%E3%81%84.mp3",
+	},
+	{
+		id: "hoshikuzu-harmony",
+		title: "星屑ハーモニー",
+		source:
+			"https://img.cyanyuzu.work/audios/%E6%98%9F%E5%B1%91%E3%83%8F%E3%83%BC%E3%83%A2%E3%83%8B%E3%83%BC.mp3",
+	},
+	{
+		id: "sakurairo-no-kimi-to",
+		title: "桜色の君と",
+		source: "https://img.cyanyuzu.work/audios/%E6%A1%9C%E8%89%B2%E3%81%AE%E5%90%9B%E3%81%A8.mp3",
+	},
+	{
+		id: "itoshisa-afurete",
+		title: "爱しさあふれて",
+		source:
+			"https://img.cyanyuzu.work/audios/%E7%88%B1%E3%81%97%E3%81%95%E3%81%82%E3%81%B5%E3%82%8C%E3%81%A6.mp3",
+	},
+	{
+		id: "genjitsu",
+		title: "现実",
+		source: "https://img.cyanyuzu.work/audios/%E7%8E%B0%E5%AE%9F.mp3",
+	},
+	{
+		id: "ude-no-naka-de",
+		title: "腕の中で",
+		source: "https://img.cyanyuzu.work/audios/%E8%85%95%E3%81%AE%E4%B8%AD%E3%81%A7.mp3",
+	},
+	{
+		id: "wakaba-no-koro-ni",
+		title: "若叶のころに",
+		source:
+			"https://img.cyanyuzu.work/audios/%E8%8B%A5%E5%8F%B6%E3%81%AE%E3%81%93%E3%82%8D%E3%81%AB.mp3",
+	},
+	{
+		id: "hidamari",
+		title: "阳だまり",
+		source: "https://img.cyanyuzu.work/audios/%E9%98%B3%E3%81%A0%E3%81%BE%E3%82%8A.mp3",
+	},
+	{
+		id: "ame-wo-matteru",
+		title: "雨を待ってる",
+		source:
+			"https://img.cyanyuzu.work/audios/%E9%9B%A8%E3%82%92%E5%BE%85%E3%81%A3%E3%81%A6%E3%82%8B.mp3",
 	},
 ];
