@@ -13,7 +13,7 @@ export const siteConfig: SiteConfig = withUserConfig("site", {
 	site: "https://hanaya.cyanyuzu.work/",
 	base: "/",
 	title: "Hanaya",
-	subtitle: "茶はまだ温かく、春はまだ先。",
+	subtitle: "Hanazono",
 	// 电脑端顶栏标题与导航内容区域："left" 左对齐，"center" 居中。
 	topAppBar: {
 		contentAlign: "center",
@@ -31,7 +31,7 @@ export const siteConfig: SiteConfig = withUserConfig("site", {
 	// IANA time zone for precise post and moment timestamps. It is independent of lang.
 	timeZone: "Asia/Shanghai",
 	themeColor: {
-		hue: 315, // Default hue 0-360. 站点设计默认粉紫（偏二次元）；262 紫 / 345 粉 也可选
+		hue: 220, // Default hue 0-360. 站点默认蓝（220）；262 紫 / 315 粉紫 / 345 粉 也可选
 		fixed: false, // Hide the theme color picker for visitors
 		// Dynamic Material 3 palette style (TonalSpot/Vibrant/Content/Expressive/Rainbow/FruitSalad/Monochrome/Neutral/Fidelity)
 		style: "tonalSpot",
@@ -70,13 +70,12 @@ export const siteConfig: SiteConfig = withUserConfig("site", {
 		homeText: {
 			// 仅在首页 Banner 中显示，标题与副标题会上下居中排列。
 			enable: true,
-			title: "Shirone",
+			title: "はなあさぎのはなや",
 			subtitle: [
-				"特別なことはないけど、君がいると十分です",
-				"今でもあなたは私の光",
-				"君ってさ、知らないうちに私の毎日になってたよ",
-				"君と話すと、なんか毎日がちょっと楽しくなるんだ",
-				"今日はなんでもない日。でも、ちょっとだけいい日",
+				"鳥は卵から抜け出ようと戦う、卵は世界だ",
+				"筆を執り、そして下ろし、ひとつの句点を描いた",
+				"けれどよりによって、私はあなたを愛している",
+				"雪がまぶしくて、君が懐かしくて",
 			],
 			typewriter: {
 				// 副标题逐字显示；关闭后直接显示完整副标题。

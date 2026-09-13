@@ -121,6 +121,29 @@ export const LinkPresets: Record<string, NavBarLink> = {
 	},
 };
 
+/**
+ * 「更多」下拉的子项。全部关闭时导航栏不会渲染该下拉。
+ */
+const moreLinks: NavBarLink[] = [
+	...(timelineConfig.enable ? [LinkPresets.Timeline] : []),
+	...(projectsConfig.enable ? [LinkPresets.Projects] : []),
+	...(devicesConfig.enable ? [LinkPresets.Devices] : []),
+	...(skillsConfig.enable ? [LinkPresets.Skills] : []),
+	// 分类/标签入口不进导航菜单（避免菜单项过多），预设已登记指向独立页面，
+	// 需要时取消注释即可
+	// LinkPresets.Categories,
+	// LinkPresets.Tags,
+];
+
+/** 「更多」下拉本身：无子项时为 null，避免渲染空菜单。 */
+const moreMenu: NavBarLink | null = moreLinks.length
+	? {
+			name: i18n(I18nKey.more),
+			icon: "material-symbols:apps-rounded",
+			children: moreLinks,
+		}
+	: null;
+
 const defaultNavBarConfig: NavBarConfig = {
 	links: [
 		LinkPresets.Home,
@@ -130,22 +153,8 @@ const defaultNavBarConfig: NavBarConfig = {
 		...(animeConfig.enable ? [LinkPresets.Anime] : []),
 		...(compassConfig.enable ? [LinkPresets.Compass] : []),
 		...(albumsConfig.enable ? [LinkPresets.Albums] : []),
-		{
-			name: i18n(I18nKey.more),
-			icon: "material-symbols:apps-rounded",
-			children: [
-				...(timelineConfig.enable ? [LinkPresets.Timeline] : []),
-				...(projectsConfig.enable ? [LinkPresets.Projects] : []),
-				...(devicesConfig.enable ? [LinkPresets.Devices] : []),
-				...(skillsConfig.enable ? [LinkPresets.Skills] : []),
-				// 分类/标签入口不进导航菜单（避免菜单项过多），预设已登记指向独立页面，
-				// 需要时取消注释即可
-				// LinkPresets.Categories,
-				// LinkPresets.Tags,
-				...(aboutConfig.enable ? [LinkPresets.About] : []),
-				LinkPresets.GitHub,
-			],
-		},
+		...(aboutConfig.enable ? [LinkPresets.About] : []),
+		...(moreMenu ? [moreMenu] : []),
 	],
 };
 

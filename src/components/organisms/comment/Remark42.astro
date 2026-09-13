@@ -156,6 +156,10 @@ const remark42Styles = await new Promise<string>((resolve, reject) => {
 	 *   - `destroy()` 销毁上一页的实例（其 DOM 已被 Swup 替换，不销毁会残留监听）；
 	 *   - `changeTheme("light" | "dark")` 运行时切换主题。
 	 * 脚本尚未就绪时通过 `REMARK42::ready` 事件补挂载。
+	 *
+	 * ⚠️ 关键前提：`embed.mjs` 在**顶层**就会立即执行 `window.remark_config.host`，
+	 * 若该全局变量不存在则直接抛 TypeError 并中断整个模块（不会挂上 `window.REMARK42`）。
+	 * 因此必须在注入脚本**之前**把配置写到 `window.remark_config`。
 	 */
 
 	interface Remark42Instance {
@@ -176,6 +180,53 @@ const remark42Styles = await new Promise<string>((resolve, reject) => {
 
 	function currentIsDark(): boolean {
 		return document.documentElement.classList.contains("dark");
+	}
+
+	/**
+	 * 主题 CSS 变量 → Remark42 配色变量。
+	 *
+	 * ⚠️ Remark42 的颜色变量是 "R,G,B" 三元组（内部以 `rgb(var(--x))` 消费），
+	 * 直接传 `#rrggbb` 会让 `rgb()` 非法、按钮变透明。
+	 * 刻意不覆盖 `--primary-background-color` / `--white-color` / `--black-color`：
+	 * 那几个是明暗背景，由 `theme` 参数负责，改了就破坏明暗自适应。
+	 */
+	function readThemeColors(): Record<string, string> {
+		const cs = getComputedStyle(document.documentElement);
+		const triplet = (name: string): string => {
+			const value = cs.getPropertyValue(name).trim();
+			const hex6 = value.match(/^#([0-9a-f]{6})$/i);
+			if (hex6) {
+				const n = Number.parseInt(hex6[1], 16);
+				return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+			}
+			const hex3 = value.match(/^#([0-9a-f]{3})$/i);
+			if (hex3) {
+				return hex3[1]
+					.split("")
+					.map((c) => Number.parseInt(c + c, 16))
+					.join(",");
+			}
+			const rgbFn = value.match(/rgba?\(([^)]+)\)/);
+			if (rgbFn) {
+				return rgbFn[1]
+					.split(",")
+					.slice(0, 3)
+					.map((part) => part.trim())
+					.join(",");
+			}
+			return value;
+		};
+		return {
+			"--primary-color": triplet("--primary"),
+			"--primary-text-color": triplet("--on-primary"),
+			"--primary-brighter-color": triplet("--primary-container"),
+			"--primary-darker-color": triplet("--on-primary-container"),
+			"--line-color": triplet("--outline-variant"),
+			"--line-brighter-color": triplet("--outline"),
+			"--text-color": triplet("--on-surface"),
+			"--secondary-text-color": triplet("--on-surface-variant"),
+			"--secondary-darker-text-color": triplet("--on-surface-variant"),
+		};
 	}
 
 	/** 按需注入 embed.mjs，全局只注入一次（module 语义天然去重）。 */
@@ -199,6 +250,34 @@ const remark42Styles = await new Promise<string>((resolve, reject) => {
 		const node = wrapper.querySelector<HTMLElement>("#remark42");
 		if (!host || !siteId || !node) return;
 
+		const remarkConfig = {
+			host,
+			site_id: siteId,
+			components: ["embed"],
+			url: `${window.location.origin}${
+				wrapper.dataset.remark42Path || window.location.pathname
+			}`,
+			theme: currentIsDark() ? "dark" : "light",
+			locale: wrapper.dataset.remark42Locale ?? "en",
+			no_footer: wrapper.dataset.remark42NoFooter === "1",
+			// 评论区渲染在跨域 iframe 内，只有这两个口子能定制外观：
+			// __colors__ 对齐站点主题色；styles 作用于 iframe 元素本身（圆角）。
+			__colors__: readThemeColors(),
+			styles: {
+				position: "absolute",
+				right: "0",
+				width: "100%",
+				height: "100%",
+				borderRadius: "var(--shape-corner-l)",
+				overflow: "hidden",
+			},
+		};
+		// embed.mjs 顶层会立即读 window.remark_config，必须在注入前写好；
+		// 换页时这里也会被重新赋值，保证 url 指向当前页面。
+		(
+			window as unknown as { remark_config?: typeof remarkConfig }
+		).remark_config = remarkConfig;
+
 		ensureEmbedScript(wrapper);
 
 		const create = () => {
@@ -213,18 +292,7 @@ const remark42Styles = await new Promise<string>((resolve, reject) => {
 			}
 			remark42Instance = null;
 
-			remark42Instance = api.createInstance({
-				node,
-				host,
-				site_id: siteId,
-				url: `${window.location.origin}${
-					wrapper.dataset.remark42Path || window.location.pathname
-				}`,
-				components: ["embed"],
-				theme: currentIsDark() ? "dark" : "light",
-				locale: wrapper.dataset.remark42Locale ?? "en",
-				no_footer: wrapper.dataset.remark42NoFooter === "1",
-			});
+			remark42Instance = api.createInstance({ node, ...remarkConfig });
 		};
 
 		if (getRemark42()?.createInstance) {
@@ -260,11 +328,16 @@ const remark42Styles = await new Promise<string>((resolve, reject) => {
 		});
 	}
 
-	// 明暗主题同步：走 Remark42 官方运行时 API，无需重载评论
+	// 明暗主题同步：先切 Remark42 内建主题，再用新配色重建实例。
+	// `__colors__` 只在 createInstance 时读一次，而主题色值在明暗下不同，所以必须重建。
 	window.addEventListener("shirone:theme-change", (event) => {
 		const detail = (event as CustomEvent<{ isDark?: boolean }>).detail;
 		const isDark = detail?.isDark ?? currentIsDark();
 		getRemark42()?.changeTheme?.(isDark ? "dark" : "light");
+		const wrapper = document.querySelector<HTMLElement>(
+			".shirone-remark42-wrapper",
+		);
+		if (wrapper) mountRemark42Instance(wrapper);
 	});
 
 	// 首次页面直达加载

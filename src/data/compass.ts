@@ -35,4 +35,25 @@ export interface CompassShelf {
 	entries: CompassEntry[];
 }
 
-export const compassData: CompassShelf[] = [];
+export const compassData: CompassShelf[] = [
+	{
+		key: "selfhosted",
+		name: "自托管服务",
+		icon: "material-symbols:cloud-sync-outline-rounded",
+		blurb: "跑在自己服务器上的服务",
+		entries: [
+			{
+				label: "BookLore",
+				href: "https://booklore.cyanyuzu.work",
+				note: "电子书库",
+				icon: "material-symbols:local-library-outline-rounded",
+			},
+			{
+				label: "OpenList",
+				href: "https://opl.cyanyuzu.work",
+				note: "网盘与文件列表",
+				icon: "material-symbols:cloud-outline",
+			},
+		],
+	},
+];
