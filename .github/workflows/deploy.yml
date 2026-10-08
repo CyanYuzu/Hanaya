@@ -1,13 +1,6 @@
-# push 到 main 后：GitHub Actions 构建，再把 dist/ 同步到 VPS。
-#
-# 部署目标：deploy@154.36.184.57:/srv/hanaya/www/
-# 由 nginx 站点 /www/server/panel/vhost/nginx/hanaya.cyanyuzu.work.conf 提供静态服务。
-#
-# 首次使用需要配置仓库 Secret：
-#   Settings > Secrets and variables > Actions > New repository secret
-#   名称：VPS_SSH_KEY   值：服务器上 /home/deploy/.ssh/id_ed25519_gha 的私钥内容
-#
-# 只改了文档/测试不会触发部署（见 paths-ignore）。
+# 内容仓 main 更新 -> repository_dispatch -> 拉取固定内容 commit -> 构建 -> 同步到 VPS。
+# 发布目标 deploy@154.36.184.57:/srv/hanaya/www/，由现有 Nginx vhost 提供服务。
+# 必需 Secrets：CONTENT_REPO_TOKEN（仅 Hanaya-Storages Contents: read）、VPS_SSH_KEY。
 
 name: Deploy
 
@@ -21,9 +14,16 @@ on:
       - "tests/**"
       - "*.md"
       - "LICENSE"
+  repository_dispatch:
+    types: [content-updated]
   workflow_dispatch:
+    inputs:
+      content_ref:
+        description: "用于回滚的内容仓 commit SHA；留空则使用 main"
+        required: false
+        type: string
+        default: ""
 
-# 同一时间只跑一个部署；新提交会取消进行中的旧构建。
 concurrency:
   group: deploy
   cancel-in-progress: true
@@ -32,6 +32,7 @@ permissions:
   contents: read
 
 env:
+  CONTENT_REPOSITORY: CyanYuzu/Hanaya-Storages
   VPS_HOST: 154.36.184.57
   VPS_USER: deploy
   VPS_TARGET: /srv/hanaya/www/
@@ -43,10 +44,65 @@ jobs:
     timeout-minutes: 20
     env:
       CI: true
+      CONTENT_DIR: .content-src
 
     steps:
-      - name: Checkout
+      - name: Resolve content ref
+        id: target
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PAYLOAD_SHA: ${{ github.event.client_payload.sha }}
+          INPUT_REF: ${{ github.event.inputs.content_ref }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            repository_dispatch)
+              ref="$PAYLOAD_SHA"
+              if [[ ! "$ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
+                echo "::error::repository_dispatch did not include a valid content commit SHA"
+                exit 1
+              fi
+              ;;
+            workflow_dispatch)
+              ref="${INPUT_REF:-main}"
+              if [[ "$ref" != "main" && ! "$ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
+                echo "::error::content_ref must be main or a full 40-character commit SHA"
+                exit 1
+              fi
+              ;;
+            *)
+              ref="main"
+              ;;
+          esac
+          printf 'ref=%s\n' "$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout code repository
         uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check private content token
+        env:
+          CONTENT_REPO_TOKEN: ${{ secrets.CONTENT_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CONTENT_REPO_TOKEN:-}" ]; then
+            echo "::error::Add CONTENT_REPO_TOKEN with read access to CyanYuzu/Hanaya-Storages."
+            exit 1
+          fi
+
+      - name: Checkout private content repository
+        uses: actions/checkout@v7.0.1
+        with:
+          repository: CyanYuzu/Hanaya-Storages
+          ref: ${{ steps.target.outputs.ref }}
+          path: .content-src
+          token: ${{ secrets.CONTENT_REPO_TOKEN }}
+          persist-credentials: false
+
+      - name: Record content commit
+        id: content
+        run: echo "sha=$(git -C .content-src rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6.1.0
@@ -62,11 +118,10 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prefer-offline
 
-      # 含 content:sync、图标生成、说说缩略图、字体子集化、astro build、
-      # Pagefind 索引与字体校验 —— 与本地发布流程完全一致。
-      - name: Build
+      # pnpm build 首步运行 content:sync，从 .content-src 物化当前内容，再构建静态站。
+      - name: Build site
         run: pnpm build
 
       - name: Set up SSH key
@@ -75,14 +130,13 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${VPS_SSH_KEY:-}" ]; then
-            echo "::error::缺少仓库 Secret VPS_SSH_KEY —— 请到 Settings → Secrets and variables → Actions → Repository secrets 添加"
+            echo "::error::Add VPS_SSH_KEY to the Hanaya repository Actions secrets."
             exit 1
           fi
           mkdir -p ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
-      # --delete 清掉上一次构建残留的旧文件；dist/ 是纯构建产物，可安全整体替换。
       - name: Deploy dist to VPS
         run: |
           set -euo pipefail
@@ -93,3 +147,16 @@ jobs:
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key
+
+      - name: Summarize deployment
+        if: always()
+        env:
+          CONTENT_SHA: ${{ steps.content.outputs.sha }}
+        run: |
+          {
+            echo "### Shirone deploy"
+            echo ""
+            echo "- 内容仓：\`${CONTENT_REPOSITORY}\`"
+            echo "- 内容 commit：\`${CONTENT_SHA:-not checked out}\`"
+            echo "- VPS target：\`${VPS_USER}@${VPS_HOST}:${VPS_TARGET}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
