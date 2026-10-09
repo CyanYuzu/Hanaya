@@ -1,4 +1,4 @@
-import { getCollection, type CollectionEntry } from "astro:content";
+import { type CollectionEntry, getCollection } from "astro:content";
 import path from "node:path";
 
 export type TextbookEntry = CollectionEntry<"textbook">;
@@ -7,6 +7,7 @@ export interface TextbookChapter {
 	entry: TextbookEntry;
 	slug: string;
 	title: string;
+	order: number;
 }
 
 export interface TextbookBook {
@@ -63,16 +64,17 @@ export async function getTextbooks(): Promise<TextbookBook[]> {
 
 			const chapters = group.chapters
 				.map((chapterEntry) => {
-					const { file } = getBookAndFile(
-						getRelativeContentPath(chapterEntry),
-					);
+					const { file } = getBookAndFile(getRelativeContentPath(chapterEntry));
 					return {
 						entry: chapterEntry,
 						slug: file,
 						title: chapterEntry.data.title.trim() || file,
+						order: chapterEntry.data.order,
 					};
 				})
-				.sort((a, b) => collator.compare(a.title, b.title));
+				.sort(
+					(a, b) => a.order - b.order || collator.compare(a.title, b.title),
+				);
 
 			return [
 				{

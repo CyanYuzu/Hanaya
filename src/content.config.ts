@@ -2,7 +2,9 @@ import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
 
-const markdownClassSchema = z.union([z.string(), z.array(z.string())]).nullish();
+const markdownClassSchema = z
+	.union([z.string(), z.array(z.string())])
+	.nullish();
 
 const postsCollection = defineCollection({
 	loader: glob({ base: "./src/content/posts", pattern: "**/*.{md,mdx}" }),
@@ -78,9 +80,20 @@ const textbookCollection = defineCollection({
 	schema: z.object({
 		/* metadata.md describes its containing book; chapter files may omit frontmatter. */
 		title: z.string().optional().default(""),
-		description: z.string().nullish().transform((value) => value ?? ""),
-		image: z.string().nullish().transform((value) => value ?? ""),
-		category: z.string().nullish().transform((value) => value ?? ""),
+		description: z
+			.string()
+			.nullish()
+			.transform((value) => value ?? ""),
+		image: z
+			.string()
+			.nullish()
+			.transform((value) => value ?? ""),
+		category: z
+			.string()
+			.nullish()
+			.transform((value) => value ?? ""),
+		/* Numeric chapter order; decimals are allowed for insertion between chapters. */
+		order: z.number().optional().default(0),
 		published: z.date().optional(),
 		updated: z.date().optional(),
 		tags: z.array(z.string()).optional().default([]),

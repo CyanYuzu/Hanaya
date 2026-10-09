@@ -98,9 +98,19 @@ export const specSchema = z.object({});
 /** Book metadata and chapter schema; chapter files may omit frontmatter. */
 export const textbookSchema = z.object({
 	title: z.string().optional().default(""),
-	description: z.string().nullish().transform((value) => value ?? ""),
-	image: z.string().nullish().transform((value) => value ?? ""),
-	category: z.string().nullish().transform((value) => value ?? ""),
+	description: z
+		.string()
+		.nullish()
+		.transform((value) => value ?? ""),
+	image: z
+		.string()
+		.nullish()
+		.transform((value) => value ?? ""),
+	category: z
+		.string()
+		.nullish()
+		.transform((value) => value ?? ""),
+	order: z.number().optional().default(0),
 	published: z.date().optional(),
 	updated: z.date().optional(),
 	tags: z.array(z.string()).optional().default([]),

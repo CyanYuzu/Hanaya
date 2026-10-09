@@ -66,6 +66,7 @@ const bookPublished = book.entry.data.published
 	? formatDateToYYYYMMDD(book.entry.data.published)
 	: undefined;
 const bookTags = book.entry.data.tags.map((tag) => tag.trim()).filter(Boolean);
+const tocChapters = book.chapters.filter((item) => item.order >= 0);
 const imageBasePath = book.entry.filePath
 	? path.relative(path.resolve("src"), path.dirname(book.entry.filePath))
 	: path.join("content/textbook/", getDir(book.entry.id));
@@ -200,9 +201,9 @@ const pageTitle = chapter?.title ?? bookTitle;
 				<Markdown class={`mb-6 onload-animation ${markdownClasses.join(" ")}`}>
 					{bookDescription && <p>{bookDescription}</p>}
 					<h2>{contentsLabel}</h2>
-					{book.chapters.length > 0 ? (
+					{tocChapters.length > 0 ? (
 						<ol>
-							{book.chapters.map((item) => (
+							{tocChapters.map((item) => (
 								<li>
 									<a href={url(getTextbookChapterUrl(book.slug, item.slug))}>
 										{item.title}
