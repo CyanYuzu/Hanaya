@@ -43,6 +43,15 @@
 			"styles": ["src/styles/markdown/content-annotations.css"]
 		},
 		{
+			"id": "elegantbook",
+			"syntaxes": [],
+			"cssClasses": ["elegantbook"],
+			"styles": [
+				"src/styles/markdown/elegantbook-blocks.css",
+				"src/styles/markdown/elegantbook-page.css"
+			]
+		},
+		{
 			"id": "expressive-code",
 			"syntaxes": ["expressive-code"],
 			"styles": ["src/styles/markdown/expressive-code.css"]
@@ -248,7 +257,7 @@
 				{
 					"name": "type",
 					"required": true,
-					"values": "note | info | tip | important | warning | caution | details",
+					"values": "note | info | tip | important | warning | caution | details | eb-definition | eb-theorem | eb-lemma | eb-corollary | eb-proposition | eb-axiom | eb-postulate | eb-example | eb-exercise | eb-problem | eb-solution | eb-proof | eb-note | eb-remark | eb-assumption | eb-conclusion | eb-property | eb-custom | eb-introduction | eb-problemset",
 					"default": null
 				},
 				{
@@ -281,8 +290,9 @@
 				"tests/site/admonitions.spec.ts"
 			],
 			"notes": [
-				"方括号标题、空格标题与 GitHub Alert 统一进入同一 Admonition renderer。",
-				"details 使用原生 disclosure，无 hydration、客户端模块或网络请求。"
+				"GitHub Alert 和 Obsidian ElegantBook callout 统一进入 SSR Admonition renderer。",
+				"details 与 ElegantBook 折叠块使用原生 disclosure，无 hydration、客户端模块或网络请求。",
+				"ElegantBook 外观只在 Markdown 根节点带 cssclass/cssclasses elegantbook 时加载。"
 			]
 		},
 		{

@@ -19,6 +19,11 @@ export const zh_CN: Translation = {
 	[Key.friendsCounts]: "个友链",
 
 	[Key.moments]: "动态",
+	[Key.textbooks]: "课本",
+	[Key.textbooksBanner]: "按书籍和章节整理的课本与讲义。",
+	[Key.textbooksEmpty]: "暂无课本。",
+	[Key.textbookContents]: "目录",
+	[Key.textbooksBack]: "返回课本列表",
 	[Key.momentsNoResults]: "没有符合条件的动态",
 	[Key.momentsBanner]: "随手记录的碎碎念 —— 生活、折腾与一切小确幸。",
 	[Key.momentsCount]: "条动态",

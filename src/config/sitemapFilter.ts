@@ -1,3 +1,4 @@
+import { isSitemapRouteAllowed } from "../utils/sitemap-filter.ts";
 import { aboutConfig } from "./aboutConfig.ts";
 import { albumsConfig } from "./albumsConfig.ts";
 import { animeConfig } from "./animeConfig.ts";
@@ -6,8 +7,10 @@ import { devicesConfig } from "./devicesConfig.ts";
 import { friendsConfig } from "./friendsConfig.ts";
 import { momentsConfig } from "./momentsConfig.ts";
 import { projectsConfig } from "./projectsConfig.ts";
+import { siteConfig } from "./siteConfig.ts";
 import { skillsConfig } from "./skillsConfig.ts";
 import { timelineConfig } from "./timelineConfig.ts";
+import { textbooksConfig } from "./textbooksConfig.ts";
 
 /** 获取所有被配置 enable: false 关闭的页面标识清单 */
 export function getDisabledPages(): string[] {
@@ -20,6 +23,7 @@ export function getDisabledPages(): string[] {
 	if (aboutConfig.enable === false) disabled.push("about");
 	if (friendsConfig.enable === false) disabled.push("friends");
 	if (momentsConfig.enable === false) disabled.push("moments");
+	if (textbooksConfig.enable === false) disabled.push("textbooks");
 	if (albumsConfig.enable === false) disabled.push("albums");
 	if (compassConfig.enable === false) disabled.push("compass");
 	return disabled;
@@ -30,15 +34,9 @@ export function getDisabledPages(): string[] {
  * 排除被关闭页面（例如 /skills/, /skills/index.html 等）以及 404 跳转存根。
  */
 export function isSitemapPageAllowed(pageUrl: string): boolean {
-	const disabled = getDisabledPages();
-	for (const p of disabled) {
-		if (
-			pageUrl.endsWith(`/${p}/`) ||
-			pageUrl.endsWith(`/${p}`) ||
-			pageUrl.includes(`/${p}/`)
-		) {
-			return false;
-		}
-	}
-	return true;
+	return isSitemapRouteAllowed(pageUrl, {
+		siteUrl: siteConfig.site,
+		basePath: siteConfig.base,
+		disabledPages: getDisabledPages(),
+	});
 }

@@ -1,7 +1,51 @@
 import { visit } from "unist-util-visit";
 
-const ADMONITION_TYPES = "note|info|tip|important|warning|caution|details";
-const GITHUB_ALERT = /^\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*$/i;
+export const ELEGANTBOOK_CALLOUT_TYPES = Object.freeze([
+	"definition",
+	"theorem",
+	"lemma",
+	"corollary",
+	"proposition",
+	"axiom",
+	"postulate",
+	"example",
+	"exercise",
+	"problem",
+	"solution",
+	"proof",
+	"note",
+	"remark",
+	"assumption",
+	"conclusion",
+	"property",
+	"custom",
+	"introduction",
+	"problemset",
+]);
+
+const ADMONITION_TYPE_NAMES = [
+	"note",
+	"info",
+	"tip",
+	"important",
+	"warning",
+	"caution",
+	"details",
+	...ELEGANTBOOK_CALLOUT_TYPES.map((type) => `eb-${type}`),
+];
+const ADMONITION_TYPES = ADMONITION_TYPE_NAMES.join("|");
+const OBSIDIAN_CALLOUT =
+	/^\s*\[!([A-Z][\w-]*)(?:\|([\w,-]+))?\]([+-])?(?:[\t ]+(.*))?\s*$/i;
+const STANDARD_CALLOUT_TYPES = new Set([
+	"note",
+	"tip",
+	"important",
+	"warning",
+	"caution",
+]);
+const ELEGANTBOOK_CALLOUT_NAMES = new Set(
+	ELEGANTBOOK_CALLOUT_TYPES.map((type) => `eb-${type}`),
+);
 const CONTAINER_OPENER = new RegExp(
 	`^([\\t ]{0,3})(:{3,})[\\t ]*(${ADMONITION_TYPES})(?![\\w-])(.*)$`,
 	"i",
@@ -60,7 +104,7 @@ export function rewriteAdmonitionContainers(source) {
 		.join("");
 }
 
-function normalizeGithubAlerts(tree) {
+function normalizeObsidianCallouts(tree) {
 	visit(tree, "blockquote", (node, index, parent) => {
 		if (typeof index !== "number" || !parent) return;
 		const [firstParagraph, ...remainingBlocks] = node.children;
@@ -69,8 +113,14 @@ function normalizeGithubAlerts(tree) {
 		if (firstText?.type !== "text") return;
 
 		const [declaration, ...remainingLines] = firstText.value.split("\n");
-		const match = declaration.match(GITHUB_ALERT);
+		const match = declaration.match(OBSIDIAN_CALLOUT);
 		if (!match) return;
+
+		const [, rawType, rawMetadata, fold, rawTitle = ""] = match;
+		const type = rawType.toLowerCase();
+		if (!STANDARD_CALLOUT_TYPES.has(type) && !ELEGANTBOOK_CALLOUT_NAMES.has(type)) {
+			return;
+		}
 
 		const firstLine = remainingLines.join("\n");
 		const paragraphChildren = [
@@ -84,10 +134,16 @@ function normalizeGithubAlerts(tree) {
 			...remainingBlocks,
 		];
 
+		const attributes = {};
+		const title = rawTitle.trim();
+		if (title) attributes.title = title;
+		if (rawMetadata) attributes.metadata = rawMetadata.split(",").join(" ");
+		if (fold) attributes.collapse = fold === "+" ? "open" : "closed";
+
 		parent.children[index] = {
 			type: "containerDirective",
-			name: match[1].toLowerCase(),
-			attributes: {},
+			name: type === "details" ? "admonition-details" : type,
+			attributes,
 			children: alertChildren,
 		};
 	});
@@ -105,5 +161,5 @@ export function remarkAdmonitions() {
 		return parser(rewriteAdmonitionContainers(source));
 	};
 
-	return normalizeGithubAlerts;
+	return normalizeObsidianCallouts;
 }

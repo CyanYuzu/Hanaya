@@ -20,6 +20,11 @@ export const vi: Translation = {
 	[Key.friendsCounts]: "liên kết bạn bè",
 
 	[Key.moments]: "Khoảnh khắc",
+	[Key.textbooks]: "Sách giáo khoa",
+	[Key.textbooksBanner]: "Sách và ghi chú bài giảng được sắp xếp theo sách và chương.",
+	[Key.textbooksEmpty]: "Chưa có sách nào.",
+	[Key.textbookContents]: "Mục lục",
+	[Key.textbooksBack]: "Quay lại danh sách sách",
 	[Key.momentsNoResults]: "Không có khoảnh khắc nào khớp bộ lọc",
 	[Key.momentsBanner]:
 		"Ghi chú ngắn — cuộc sống, công việc và những niềm vui nhỏ.",

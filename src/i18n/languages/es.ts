@@ -20,6 +20,11 @@ export const es: Translation = {
 	[Key.friendsCounts]: "amigos",
 
 	[Key.moments]: "Momentos",
+	[Key.textbooks]: "Libros de texto",
+	[Key.textbooksBanner]: "Libros y apuntes organizados por libro y capítulo.",
+	[Key.textbooksEmpty]: "Aún no hay libros.",
+	[Key.textbookContents]: "Contenido",
+	[Key.textbooksBack]: "Volver a los libros",
 	[Key.momentsNoResults]: "No hay momentos que coincidan con los filtros",
 	[Key.momentsBanner]: "Notas cortas — vida, trabajo y pequeñas alegrías.",
 	[Key.momentsCount]: "momento",

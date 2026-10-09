@@ -24,6 +24,11 @@ enum I18nKey {
 	momentsBanner = "momentsBanner",
 	momentsCount = "momentsCount",
 	momentsCounts = "momentsCounts",
+	textbooks = "textbooks",
+	textbooksBanner = "textbooksBanner",
+	textbooksEmpty = "textbooksEmpty",
+	textbookContents = "textbookContents",
+	textbooksBack = "textbooksBack",
 	pinned = "pinned",
 	loadMore = "loadMore",
 

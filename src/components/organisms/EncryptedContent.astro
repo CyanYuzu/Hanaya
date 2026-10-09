@@ -7,9 +7,10 @@ interface Props {
 	password: string;
 	scope: string;
 	hint?: string;
+	markdownClass?: string;
 }
 
-const { password, scope, hint = "" } = Astro.props;
+const { password, scope, hint = "", markdownClass = "" } = Astro.props;
 
 const rawHtml = await Astro.slots.render("default");
 
@@ -25,5 +26,6 @@ const payload: ProtectedPayload = await encryptProtectedContent(
 	payload={payload}
 	scope={scope}
 	hint={hint}
+	markdownClass={markdownClass}
 	client:only="svelte"
 />

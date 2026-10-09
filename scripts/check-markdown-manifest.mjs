@@ -72,6 +72,7 @@ const stylesheetPacks = Array.isArray(manifest.stylesheetPacks)
 	: [];
 const seenStylesheetPackIds = new Set();
 const seenStylesheetPackSyntaxes = new Set();
+const seenStylesheetPackClasses = new Set();
 const seenStylesheetPackStyles = new Set();
 let previousStylesheetPackId = "";
 
@@ -96,10 +97,17 @@ for (const pack of stylesheetPacks) {
 	}
 	previousStylesheetPackId = pack.id;
 
-	for (const field of ["syntaxes", "styles"]) {
-		if (!Array.isArray(pack[field]) || pack[field].length === 0) {
-			fail(`${owner}.${field} 必须是非空数组`);
-		}
+	if (!Array.isArray(pack.syntaxes)) {
+		fail(`${owner}.syntaxes 必须是数组`);
+	}
+	if (!Array.isArray(pack.styles) || pack.styles.length === 0) {
+		fail(`${owner}.styles 必须是非空数组`);
+	}
+	if (pack.cssClasses !== undefined && !Array.isArray(pack.cssClasses)) {
+		fail(`${owner}.cssClasses 必须是数组`);
+	}
+	if (!(pack.syntaxes?.length || pack.cssClasses?.length)) {
+		fail(`${owner} 必须声明 syntaxes 或 cssClasses 作为加载条件`);
 	}
 	for (const syntaxId of pack.syntaxes ?? []) {
 		if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(syntaxId)) {
@@ -112,6 +120,15 @@ for (const pack of stylesheetPacks) {
 			fail(`语法只能属于一个 stylesheet pack：${syntaxId}`);
 		}
 		seenStylesheetPackSyntaxes.add(syntaxId);
+	}
+	for (const className of pack.cssClasses ?? []) {
+		if (!/^[A-Za-z_][A-Za-z0-9_-]*$/.test(className)) {
+			fail(`${owner}.cssClasses 包含无效 CSS class：${className}`);
+		}
+		if (seenStylesheetPackClasses.has(className)) {
+			fail(`CSS class 只能属于一个 stylesheet pack：${className}`);
+		}
+		seenStylesheetPackClasses.add(className);
 	}
 	for (const stylePath of pack.styles ?? []) {
 		if (!stylePath.endsWith(".css")) {
@@ -220,8 +237,13 @@ const syntaxStyles = new Set(
 		Array.isArray(syntax.styles) ? syntax.styles : [],
 	),
 );
+const cssClassOwnedStyles = new Set(
+	stylesheetPacks
+		.filter((pack) => Array.isArray(pack.cssClasses) && pack.cssClasses.length > 0)
+		.flatMap((pack) => (Array.isArray(pack.styles) ? pack.styles : [])),
+);
 for (const stylePath of seenStylesheetPackStyles) {
-	if (!syntaxStyles.has(stylePath)) {
+	if (!syntaxStyles.has(stylePath) && !cssClassOwnedStyles.has(stylePath)) {
 		fail(`stylesheet pack 样式未由任何语法声明：${stylePath}`);
 	}
 }

@@ -190,6 +190,25 @@ export function shirones(options: ShironesOptions = {}): AstroIntegration {
 					base?: string;
 				};
 
+				const sitemapFilterModule =
+					options.bundledIntegrations === false
+						? null
+						: await loadConfigModule(paths, "sitemapFilter", registryRef);
+				const loadedSitemapFilter =
+					sitemapFilterModule?.isSitemapPageAllowed;
+				if (
+					sitemapFilterModule &&
+					typeof loadedSitemapFilter !== "function"
+				) {
+					throw new Error(
+						'[shirones] Config module "sitemapFilter" must export `isSitemapPageAllowed(pageUrl)`.',
+					);
+				}
+				const sitemapFilter =
+					typeof loadedSitemapFilter === "function"
+						? (loadedSitemapFilter as (pageUrl: string) => boolean)
+						: undefined;
+
 				const sidebarModule = await loadConfigModule(paths, "sidebarConfig", registryRef);
 				const sidebarConfig = sidebarModule.sidebarConfig as {
 					enable?: boolean;
@@ -254,6 +273,7 @@ export function shirones(options: ShironesOptions = {}): AstroIntegration {
 								{
 									umamiConfig,
 									umamiEnabled,
+									sitemapFilter,
 								},
 								registryRef,
 							);
@@ -400,7 +420,11 @@ function prebundleCandidates(
 async function createBundledIntegrations(
 	paths: ResolvedShironesPaths,
 	command: string,
-	options: { umamiConfig: { shareUrl: string }; umamiEnabled: boolean },
+	options: {
+		umamiConfig: { shareUrl: string };
+		umamiEnabled: boolean;
+		sitemapFilter?: (pageUrl: string) => boolean;
+	},
 	registryRef?: { overrides: Map<string, string> },
 ) {
 	const [
@@ -549,7 +573,11 @@ async function createBundledIntegrations(
 				warningFilter: () => command !== "dev",
 			},
 		}),
-		sitemap(),
+		sitemap(
+			options.sitemapFilter
+				? { filter: options.sitemapFilter }
+				: undefined,
+		),
 		mdx({ syntaxHighlight: false, optimize: true }),
 	];
 }

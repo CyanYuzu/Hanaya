@@ -1,11 +1,11 @@
 ---
 name: shirone-writing
-description: Writing blog posts and moments for a Shirone blog - frontmatter schemas, drafts, pinned posts, encrypted posts, images, tags, categories, and the new-post scaffold. Use when creating or editing content under src/content/.
+description: Writing posts, moments, and textbooks for a Shirone blog - frontmatter schemas, drafts, images, tags, categories, ElegantBook classes, and the textbook folder layout. Use when creating or editing content under src/content/.
 ---
 
-# Shirone 内容写作(文章与动态)
+# Shirone 内容写作(文章、动态与课本)
 
-内容放在 `src/content/posts/`(文章,支持 `.md`/`.mdx`)与 `src/content/moments/`(动态,仅 `.md`)。Schema 定义在 `src/content.config.ts`。相册不属于 Content Collection，改用 `shirone-data`。
+内容放在 `src/content/posts/`(文章,支持 `.md`/`.mdx`)、`src/content/moments/`(动态,仅 `.md`)与 `src/content/textbook/<书名>/`(课本与讲义)。Schema 定义在 `src/content.config.ts`。相册不属于 Content Collection，改用 `shirone-data`。
 
 ## 文章 frontmatter
 
@@ -24,6 +24,7 @@ pinned: false           # 置顶
 draft: false            # 草稿(不发布)
 comment: true           # 文章级评论开关(默认 true,继承全局)
 lang: ""                # 覆盖站点默认语言的渲染语言
+cssclass: elegantbook    # 可选 Markdown 样式 class；也支持 cssclasses: [elegantbook]
 # 加密文章
 encrypted: false
 password: ""            # 字符串或数字
@@ -45,6 +46,20 @@ hideHomeContent: true   # 加密内容在首页隐藏(默认 true)
 
 `published`(必填)、`pinned`、`location`、`mood`(Iconify 图标名,如 `material-symbols:sentiment-excited-outline-rounded`)、`tags: []`、`images: [{src, alt}]`、`draft`。
 
+## 课本与讲义
+
+每本书使用一个文件夹。`metadata.md` 只写 YAML frontmatter，不写正文；同目录下每章单独放一个 Markdown 文件，章节标题默认取文件名。
+
+```text
+textbook/高等代数/
+├── metadata.md
+├── 声明.md
+├── 第一章 多项式.md
+└── 第二章 行列式.md
+```
+
+书本级 frontmatter 会作为默认值应用于章节。书本或文章需要 ElegantBook 样式时设置 `cssclass: elegantbook`；现代 Obsidian 写法 `cssclasses: [elegantbook]` 也兼容。完整字段与发布行为见 `docs/textbooks.md`。
+
 ## 工作流
 
 1. 脚手架:`pnpm.cmd new-post <filename>` 生成 `src/content/posts/<filename>.md` 骨架;
@@ -53,7 +68,7 @@ hideHomeContent: true   # 加密内容在首页隐藏(默认 true)
 
 ## 现成范例(demo 文章即文档)
 
-`src/content/posts/` 下的示例文章同时是语法文档,写作前可参考:`markdown.md`(基础)、`markdown-extended.md`(扩展语法)、`admonitions.md`、`spoilers.md`、`steps.md`、`option-groups.md`、`collapse-panels.md`、`marker-highlights.md`、`markdown-abbreviations.md`、`markdown-mermaid.md`、`expressive-code.md`、`encrypted-demo.md`(加密)、`video.md`、`image-grid-demo/`(图片画廊)、`markdown-includes.md`(文件包含)。
+`src/content/posts/` 下的示例文章同时是语法文档,写作前可参考:`markdown.md`(基础)、`markdown-extended.md`(扩展语法)、`admonitions.md`、`spoilers.md`、`steps.md`、`option-groups.md`、`collapse-panels.md`、`marker-highlights.md`、`markdown-abbreviations.md`、`markdown-mermaid.md`、`expressive-code.md`、`encrypted-demo.md`(加密)、`video.md`、`image-grid-demo/`(图片画廊)、`markdown-includes.md`(文件包含)。ElegantBook callout 写法见 `docs/markdown-extensions.md`。
 
 ## 注意事项
 

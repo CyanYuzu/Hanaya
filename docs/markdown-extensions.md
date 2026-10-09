@@ -81,6 +81,11 @@ Admonition 支持现有方括号标题、GitHub Alert 与常用的空格标题�
 
 类型集合为 `note | info | tip | important | warning | caution | details`。`remark-admonitions.mjs` 只负责在代码围栏之外归一化作者输入；方括号标题和 GitHub Alert 继续由既有 directive 管线解析，最终都进入 `rehype-component-admonition.mjs`。`details` 在内部使用独立指令名，避免 `rehype-components` 把渲染后的原生 `<details>` 再次当作待处理组件。
 
+Obsidian ElegantBook callout 也可以使用原生作者语法，例如 `> [!eb-theorem] 定理名称`、
+`> [!eb-proof]- 证明`、`> [!eb-definition|no-end] 定义名称`。这些 callout 由同一 SSR
+Admonition 管线渲染；页面只有在 Markdown frontmatter 设置 `cssclass: elegantbook`
+或 `cssclasses: [elegantbook]` 时，才加载移植的 ElegantBook 页面与 callout 样式。
+
 组件根节点使用 `not-prose`，内部段落、列表、引用、代码与折叠标题的几何由 `markdown/admonitions.css` 完整拥有。不要把提示容器重新改成 `blockquote`，也不要把样式追加回 `markdown-extend.styl`：前者会泄漏通用引用样式，后者会让新旧样式入口重复竞争。独立演示页位于 `src/content/posts/admonitions.md`。
 
 ### 3.2 马克笔高亮

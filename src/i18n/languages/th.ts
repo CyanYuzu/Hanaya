@@ -19,6 +19,11 @@ export const th: Translation = {
 	[Key.friendsCounts]: "ลิงก์",
 
 	[Key.moments]: "โมเมนต์",
+	[Key.textbooks]: "หนังสือเรียน",
+	[Key.textbooksBanner]: "หนังสือและเอกสารประกอบการบรรยายจัดตามเล่มและบท",
+	[Key.textbooksEmpty]: "ยังไม่มีหนังสือ",
+	[Key.textbookContents]: "สารบัญ",
+	[Key.textbooksBack]: "กลับไปยังหนังสือทั้งหมด",
 	[Key.momentsNoResults]: "ไม่มีโมเมนต์ที่ตรงกับตัวกรอง",
 	[Key.momentsBanner]: "บันทึกสั้น ๆ — ชีวิต งาน และความสุขเล็ก ๆ",
 	[Key.momentsCount]: "ชิ้น",
