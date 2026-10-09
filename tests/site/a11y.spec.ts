@@ -19,7 +19,7 @@ const pages = [
 	{ name: "友链", path: "/friends/" },
 	{ name: "动态", path: "/moments/" },
 	{ name: "番剧", path: "/anime/" },
-	{ name: "站点罗盘", path: "/compass/" },
+	{ name: "罗盘", path: "/compass/" },
 	{ name: "技能", path: "/skills/" },
 	{ name: "项目", path: "/projects/" },
 	{ name: "设备展示", path: "/devices/" },
