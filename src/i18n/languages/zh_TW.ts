@@ -19,6 +19,11 @@ export const zh_TW: Translation = {
 	[Key.friendsCounts]: "個友鏈",
 
 	[Key.moments]: "動態",
+	[Key.textbooks]: "教科書",
+	[Key.textbooksBanner]: "按書籍和章節整理的教科書與講義。",
+	[Key.textbooksEmpty]: "暫無教科書。",
+	[Key.textbookContents]: "目錄",
+	[Key.textbooksBack]: "返回教科書列表",
 	[Key.momentsNoResults]: "沒有符合條件的動態",
 	[Key.momentsBanner]: "隨手記錄的碎碎念 —— 生活、折騰與一切小確幸。",
 	[Key.momentsCount]: "則動態",

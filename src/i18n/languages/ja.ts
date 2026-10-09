@@ -20,6 +20,11 @@ export const ja: Translation = {
 	[Key.friendsCounts]: "件の友達リンク",
 
 	[Key.moments]: "モーメンツ",
+	[Key.textbooks]: "教科書",
+	[Key.textbooksBanner]: "書籍と講義ノートを、書籍ごと・章ごとに整理します。",
+	[Key.textbooksEmpty]: "教科書はまだありません。",
+	[Key.textbookContents]: "目次",
+	[Key.textbooksBack]: "教科書一覧へ戻る",
 	[Key.momentsNoResults]: "条件に一致するモーメンツはありません",
 	[Key.momentsBanner]:
 		"ふとした瞬間を気軽に記録 —— 日々、制作、そして小さな幸せ。",

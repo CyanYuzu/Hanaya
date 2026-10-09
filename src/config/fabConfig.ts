@@ -37,7 +37,7 @@ export const fabConfig: FabConfig = withUserConfig("fab", {
 			type: "toc",
 			enable: true,
 			devices: ["mobile", "tablet"],
-			pages: ["post"],
+			pages: ["post", "textbookChapter"],
 			depth: 3,
 			closeOnSelect: true,
 		},

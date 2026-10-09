@@ -20,6 +20,11 @@ export const tr: Translation = {
 	[Key.friendsCounts]: "arkadaş",
 
 	[Key.moments]: "Anlar",
+	[Key.textbooks]: "Ders kitapları",
+	[Key.textbooksBanner]: "Kitaplar ve ders notları kitap ve bölümlere göre düzenlenir.",
+	[Key.textbooksEmpty]: "Henüz kitap yok.",
+	[Key.textbookContents]: "İçindekiler",
+	[Key.textbooksBack]: "Kitaplara dön",
 	[Key.momentsNoResults]: "Filtrelerle eşleşen an yok",
 	[Key.momentsBanner]: "Kısa notlar — hayat, iş ve küçük mutluluklar.",
 	[Key.momentsCount]: "an",

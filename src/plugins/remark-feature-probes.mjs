@@ -1,5 +1,6 @@
 import { visit } from "unist-util-visit";
 import { createMarkdownSyntaxSnapshot } from "../utils/markdown-syntaxes.mjs";
+import { ELEGANTBOOK_CALLOUT_TYPES } from "./markdown/remark-admonitions.mjs";
 import { getAcFunEmbedData } from "./markdown/core/acfun.mjs";
 import { getArtPlayerEmbedData } from "./markdown/core/artplayer.mjs";
 import { getAudioReaderEmbedData } from "./markdown/core/audio-reader.mjs";
@@ -7,6 +8,16 @@ import { getBilibiliEmbedData } from "./markdown/core/bilibili.mjs";
 import { getYouTubeEmbedData } from "./markdown/core/youtube.mjs";
 
 const IMAGE_PRESENTATION_WIDTH_TOKEN = /(?:^|\s)w-(?:[1-9]\d?|100)%(?=\s|$)/;
+const ADMONITION_DIRECTIVES = new Set([
+	"note",
+	"info",
+	"tip",
+	"important",
+	"warning",
+	"caution",
+	"admonition-details",
+	...ELEGANTBOOK_CALLOUT_TYPES.map((type) => `eb-${type}`),
+]);
 
 function getDirectiveLabel(children = []) {
 	return children
@@ -111,15 +122,7 @@ export function remarkFeatureProbes() {
 			}
 			if (
 				node.type === "containerDirective" &&
-				[
-					"note",
-					"info",
-					"tip",
-					"important",
-					"warning",
-					"caution",
-					"admonition-details",
-				].includes(node.name)
+				ADMONITION_DIRECTIVES.has(node.name)
 			) {
 				syntaxes.add("admonition");
 			}

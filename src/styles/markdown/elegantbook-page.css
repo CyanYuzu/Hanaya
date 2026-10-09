@@ -1,0 +1,78 @@
+/* Adapted from Hanaya-Storage's elegantbook-page.css. Fonts inherit from the site theme. */
+.custom-md.elegantbook {
+	--eb-main: 0, 166, 82;
+	--eb-second: 255, 134, 24;
+	--eb-third: 0, 174, 247;
+	--eb-structure: 60, 113, 183;
+	--eb-paper: var(--surface, #fff);
+	--eb-ink: var(--on-surface, #1a1a1a);
+	--eb-tint: 5%;
+	--line-height-normal: 1.65;
+	--h1-color: rgb(var(--eb-structure));
+	--h2-color: rgb(var(--eb-structure));
+	--h3-color: rgb(var(--eb-structure));
+	width: min(100%, 850px);
+	margin-inline: auto;
+	line-height: 1.65;
+	color: var(--eb-ink);
+}
+
+.dark .custom-md.elegantbook {
+	--eb-paper: var(--surface-container-low, #202124);
+	--eb-ink: var(--on-surface, #e5e5e5);
+	--eb-tint: 12%;
+}
+
+.custom-md.elegantbook.elegantbook-green {
+	--eb-main: 0, 120, 2;
+	--eb-second: 230, 90, 7;
+	--eb-third: 0, 160, 152;
+	--eb-structure: 0, 120, 2;
+}
+
+.custom-md.elegantbook.elegantbook-cyan {
+	--eb-main: 59, 180, 5;
+	--eb-second: 175, 153, 8;
+	--eb-third: 244, 105, 102;
+	--eb-structure: 31, 186, 190;
+}
+
+.custom-md.elegantbook.elegantbook-gray {
+	--eb-main: 150, 150, 150;
+	--eb-second: 150, 150, 150;
+	--eb-third: 150, 150, 150;
+	--eb-structure: 150, 150, 150;
+}
+
+.custom-md.elegantbook.elegantbook-black {
+	--eb-main: 0, 0, 0;
+	--eb-second: 0, 0, 0;
+	--eb-third: 0, 0, 0;
+	--eb-structure: 0, 0, 0;
+}
+
+.dark .custom-md.elegantbook.elegantbook-black {
+	--eb-main: 190, 190, 190;
+	--eb-second: 190, 190, 190;
+	--eb-third: 190, 190, 190;
+	--eb-structure: 190, 190, 190;
+}
+
+.custom-md.elegantbook :is(h1, h2, h3) {
+	color: rgb(var(--eb-structure));
+}
+
+.custom-md.elegantbook h1 {
+	border-bottom: 1px solid rgb(var(--eb-structure));
+	padding-bottom: var(--m3e-space-2);
+}
+
+@media print {
+	.custom-md.elegantbook {
+		--eb-paper: #fff;
+		--eb-ink: #1a1a1a;
+		--eb-tint: 5%;
+		line-height: 1.55;
+		color: var(--eb-ink);
+	}
+}

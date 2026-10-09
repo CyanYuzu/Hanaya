@@ -20,6 +20,11 @@ export const id: Translation = {
 	[Key.friendsCounts]: "teman",
 
 	[Key.moments]: "Momen",
+	[Key.textbooks]: "Buku teks",
+	[Key.textbooksBanner]: "Buku dan catatan kuliah, disusun per buku dan bab.",
+	[Key.textbooksEmpty]: "Belum ada buku.",
+	[Key.textbookContents]: "Daftar isi",
+	[Key.textbooksBack]: "Kembali ke buku",
 	[Key.momentsNoResults]: "Tidak ada momen yang cocok dengan filter",
 	[Key.momentsBanner]:
 		"Catatan singkat — kehidupan, karya, dan kebahagiaan kecil.",

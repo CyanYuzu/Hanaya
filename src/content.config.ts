@@ -2,6 +2,8 @@ import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
 
+const markdownClassSchema = z.union([z.string(), z.array(z.string())]).nullish();
+
 const postsCollection = defineCollection({
 	loader: glob({ base: "./src/content/posts", pattern: "**/*.{md,mdx}" }),
 	schema: z.object({
@@ -18,6 +20,8 @@ const postsCollection = defineCollection({
 		tags: z.array(z.string()).optional().default([]),
 		category: z.string().optional().nullable().default(""),
 		lang: z.string().optional().default(""),
+		cssclass: markdownClassSchema,
+		cssclasses: markdownClassSchema,
 
 		/* Post Encryption */
 		encrypted: z.boolean().optional().default(false),
@@ -69,8 +73,26 @@ const momentsCollection = defineCollection({
 	}),
 });
 
+const textbookCollection = defineCollection({
+	loader: glob({ base: "./src/content/textbook", pattern: "**/*.md" }),
+	schema: z.object({
+		/* metadata.md describes its containing book; chapter files may omit frontmatter. */
+		title: z.string().optional().default(""),
+		description: z.string().nullish().transform((value) => value ?? ""),
+		image: z.string().nullish().transform((value) => value ?? ""),
+		category: z.string().nullish().transform((value) => value ?? ""),
+		published: z.date().optional(),
+		updated: z.date().optional(),
+		tags: z.array(z.string()).optional().default([]),
+		draft: z.boolean().optional().default(false),
+		cssclass: markdownClassSchema,
+		cssclasses: markdownClassSchema,
+	}),
+});
+
 export const collections = {
 	posts: postsCollection,
 	spec: specCollection,
 	moments: momentsCollection,
+	textbook: textbookCollection,
 } as const;

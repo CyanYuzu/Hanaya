@@ -47,13 +47,55 @@ export function AdmonitionComponent(properties, children, type) {
 
 	const fallbackTitle = title || type.toUpperCase();
 	const renderedTitle = titleNodes(label, fallbackTitle);
+	const body = content.length
+		? h("div", { class: "m3-admonition__body" }, content)
+		: null;
+
+	if (type.startsWith("eb-")) {
+		const metadata = resolveTitle(properties.metadata);
+		const collapse = properties.collapse;
+		const isCollapsible = collapse === "open" || collapse === "closed";
+		const rootProperties = {
+			class: `admonition bdm-${type} m3-admonition not-prose${isCollapsible ? " is-collapsible" : ""}`,
+			"data-admonition": type,
+			"data-callout": type,
+			...(metadata ? { "data-callout-metadata": metadata } : {}),
+		};
+		const header = isCollapsible
+			? h("summary", { class: "m3-admonition__header m3-state-layer" }, [
+					renderIndicator(),
+					h("span", { class: "bdm-title m3-admonition__title" }, renderedTitle),
+					h("span", {
+						class: "m3-admonition__chevron",
+						"aria-hidden": "true",
+					}),
+				])
+			: h("div", { class: "m3-admonition__header" }, [
+					renderIndicator(),
+					h("span", { class: "bdm-title m3-admonition__title" }, renderedTitle),
+				]);
+
+		if (isCollapsible) {
+			return h(
+				"details",
+				{
+					...rootProperties,
+					...(collapse === "open" ? { open: true } : {}),
+				},
+				[header, ...(body ? [body] : [])],
+			);
+		}
+
+		return h("aside", { ...rootProperties, role: "note" }, [
+			header,
+			...(body ? [body] : []),
+		]);
+	}
+
 	const rootProperties = {
 		class: `admonition bdm-${type} m3-admonition not-prose`,
 		"data-admonition": type,
 	};
-	const body = content.length
-		? h("div", { class: "m3-admonition__body" }, content)
-		: null;
 
 	if (type === "details") {
 		return h("details", rootProperties, [

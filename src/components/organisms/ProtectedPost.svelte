@@ -11,10 +11,12 @@ let {
 	payload,
 	scope,
 	hint = "",
+	markdownClass = "",
 }: {
 	payload: ProtectedPayload;
 	scope: string;
 	hint?: string;
+	markdownClass?: string;
 } = $props();
 
 let content = $state<string | null>(null);
@@ -36,7 +38,7 @@ $effect(() => {
 	<!-- 解密后的正文渲染容器：继承站点标准 Markdown 样式与动效 -->
 	<div
 		bind:this={containerElement}
-		class="prose dark:prose-invert prose-base !max-w-none custom-md markdown-content mb-6 onload-animation"
+		class="prose dark:prose-invert prose-base !max-w-none custom-md markdown-content mb-6 onload-animation {markdownClass}"
 	>
 		<!-- biome-ignore lint/security/noDangerouslySetInnerHtml: Decrypted HTML from authenticated Web Crypto AES-GCM -->
 		{@html content}

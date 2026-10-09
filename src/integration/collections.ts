@@ -14,8 +14,8 @@ import { z } from "astro/zod";
 
 export interface DefineCollectionsOptions {
 	/**
-	 * Directory holding `posts/`, `moments/` and `spec/`, relative to the
-	 * project root.
+	 * Directory holding `posts/`, `moments/`, `spec/` and `textbook/`, relative
+	 * to the project root.
 	 * @default "shirones/content"
 	 */
 	contentDir?: string;
@@ -24,6 +24,7 @@ export interface DefineCollectionsOptions {
 		posts?: string;
 		moments?: string;
 		spec?: string;
+		textbook?: string;
 	};
 }
 
@@ -52,6 +53,8 @@ export const postSchema = z.object({
 	tags: z.array(z.string()).optional().default([]),
 	category: z.string().optional().nullable().default(""),
 	lang: z.string().optional().default(""),
+	cssclass: z.union([z.string(), z.array(z.string())]).nullish(),
+	cssclasses: z.union([z.string(), z.array(z.string())]).nullish(),
 
 	/* Post encryption */
 	encrypted: z.boolean().optional().default(false),
@@ -92,6 +95,20 @@ export const momentSchema = z.object({
 /** Schema for free-form spec pages (currently just `about.md`). */
 export const specSchema = z.object({});
 
+/** Book metadata and chapter schema; chapter files may omit frontmatter. */
+export const textbookSchema = z.object({
+	title: z.string().optional().default(""),
+	description: z.string().nullish().transform((value) => value ?? ""),
+	image: z.string().nullish().transform((value) => value ?? ""),
+	category: z.string().nullish().transform((value) => value ?? ""),
+	published: z.date().optional(),
+	updated: z.date().optional(),
+	tags: z.array(z.string()).optional().default([]),
+	draft: z.boolean().optional().default(false),
+	cssclass: z.union([z.string(), z.array(z.string())]).nullish(),
+	cssclasses: z.union([z.string(), z.array(z.string())]).nullish(),
+});
+
 /**
  * Build the `collections` export for `src/content.config.ts`.
  */
@@ -107,6 +124,9 @@ export function defineCollections(options: DefineCollectionsOptions = {}) {
 	const specBase = options.paths?.spec
 		? normaliseBase(options.paths.spec)
 		: `${root}/spec`;
+	const textbookBase = options.paths?.textbook
+		? normaliseBase(options.paths.textbook)
+		: `${root}/textbook`;
 
 	return {
 		posts: defineCollection({
@@ -120,6 +140,10 @@ export function defineCollections(options: DefineCollectionsOptions = {}) {
 		moments: defineCollection({
 			loader: glob({ base: momentsBase, pattern: "**/*.md" }),
 			schema: momentSchema,
+		}),
+		textbook: defineCollection({
+			loader: glob({ base: textbookBase, pattern: "**/*.md" }),
+			schema: textbookSchema,
 		}),
 	} as const;
 }

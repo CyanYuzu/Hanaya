@@ -92,6 +92,7 @@ SSR 组件和首帧布局依赖的样式使用构建期特征决定条件 `<link
 | `markdown-media` | image-grid、image-presentation | 文章图片画廊、宽度与图注 |
 | `markdown-code` | expressive-code、code-tree 中的代码面板 | Expressive Code 覆盖与折叠控件样式 |
 | `markdown-math` | math | KaTeX 与滚动容器依赖 |
+| `elegantbook` | Obsidian `cssclass` / `cssclasses` 中的 `elegantbook` | 无 | 显式 CSS class 命中后为文章与课本章节加载 ElegantBook 页面和 callout 样式 |
 
 同一页面命中多个消费者时，每个样式包只能声明一次。若实测某个包非常小且拆分会增加更多请求，可以与生命周期相同的相邻包合并；合并决定必须记录在清单说明中，并以生产构建请求数据为依据。
 
@@ -131,7 +132,7 @@ type MarkdownSyntaxSnapshot = {
 };
 ```
 
-样式包和运行时由站点注册表根据 `syntaxes` 推导；页面级 CSS 以 manifest 顶层 `stylesheetPacks` 的语法声明为准。禁止让每个插件直接写入 CSS URL、chunk 名或页面模板标记，否则资源拆包会反向污染解析层。
+样式包和运行时由站点注册表根据 `syntaxes` 推导；页面级 CSS 以 manifest 顶层 `stylesheetPacks` 声明的语法或显式 CSS class 条件为准。`elegantbook` 样式包由 Markdown 根节点的 `cssclass: elegantbook` 或 `cssclasses: [elegantbook]` 启用，可用于普通文章与课本章节。禁止让每个插件直接写入 CSS URL、chunk 名或页面模板标记，否则资源拆包会反向污染解析层。
 
 迁移要求：
 

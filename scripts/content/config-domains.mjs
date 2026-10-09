@@ -177,6 +177,12 @@ export const CONFIG_DOMAINS = Object.freeze([
 		module: "@/types/momentsConfig",
 	},
 	{
+		key: "textbooks",
+		file: "textbooks",
+		type: "TextbooksConfig",
+		module: "@/types/textbooksConfig",
+	},
+	{
 		key: "albums",
 		file: "albums",
 		type: "AlbumsConfig",

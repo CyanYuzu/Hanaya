@@ -8,6 +8,7 @@ import markdownManifest from "../plugins/markdown/manifest.json" with {
 type MarkdownStylesheetPack = {
 	id: string;
 	syntaxes: readonly string[];
+	cssClasses?: readonly string[];
 	styles: readonly string[];
 };
 
@@ -68,9 +69,12 @@ function readStylesheet(stylePath: string): string {
  */
 export async function getMarkdownStylesheetAssets(
 	snapshot: MarkdownSyntaxSnapshot,
+	cssClasses: readonly string[] = [],
 ): Promise<Array<{ pack: string; css: string }>> {
-	const activePacks = stylesheetPacks.filter(({ syntaxes }) =>
-		syntaxes.some((syntaxId) => snapshot.syntaxes.includes(syntaxId)),
+	const activePacks = stylesheetPacks.filter(
+		({ syntaxes, cssClasses: packCssClasses = [] }) =>
+			syntaxes.some((syntaxId) => snapshot.syntaxes.includes(syntaxId)) ||
+			packCssClasses.some((className) => cssClasses.includes(className)),
 	);
 
 	return activePacks.map(({ id, styles }) => ({

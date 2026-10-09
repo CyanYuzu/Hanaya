@@ -69,6 +69,7 @@ export {
 } from "./siteConfig";
 export { skillsConfig } from "./skillsConfig";
 export { timelineConfig } from "./timelineConfig";
+export { textbooksConfig } from "./textbooksConfig";
 export {
 	type ResolvedUmamiOptions,
 	resolveUmamiOptions,

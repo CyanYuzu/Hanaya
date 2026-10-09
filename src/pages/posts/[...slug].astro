@@ -23,6 +23,7 @@ import { getPublishedInstant, getUpdatedInstant } from "@utils/content-date";
 import { getSortedPosts, type PostForList } from "@utils/content-utils";
 import { formatDateToYYYYMMDD } from "@utils/date-utils";
 import { getMarkdownStylesheetAssets } from "@utils/markdown-assets";
+import { normalizeMarkdownCssClasses } from "@utils/markdown-css-classes";
 import { getSourceMarkdownSyntaxSnapshot } from "@utils/markdown-source-syntaxes.mjs";
 import {
 	hasMarkdownSyntax,
@@ -125,9 +126,18 @@ const markdownSyntaxes = mergeMarkdownSyntaxSnapshots(
 	renderedMarkdownSyntaxes,
 	sourceMarkdownSyntaxes,
 );
+
+const markdownCssClasses = normalizeMarkdownCssClasses(
+	entry.data.cssclass,
+	entry.data.cssclasses,
+);
+const markdownClassNames = [
+	"mb-6 onload-animation",
+	...markdownCssClasses,
+].join(" ");
 const hasMath = hasMarkdownSyntax(markdownSyntaxes, "math");
 const markdownStylesheetAssets =
-	await getMarkdownStylesheetAssets(markdownSyntaxes);
+	await getMarkdownStylesheetAssets(markdownSyntaxes, markdownCssClasses);
 const effectiveHeadings = isEncrypted ? [] : headings;
 const imageBasePath = entry.filePath
 	? path.relative(path.resolve("src"), path.dirname(entry.filePath))
@@ -271,11 +281,12 @@ const jsonLd = {
                     password={entry.data.password!}
                     scope={scope}
                     hint={entry.data.passwordHint}
+                    markdownClass={markdownCssClasses.join(" ")}
                 >
                     <Content />
                 </EncryptedContent>
             ) : (
-                <Markdown class="mb-6 onload-animation">
+                <Markdown class={markdownClassNames}>
                     <Content />
                 </Markdown>
             )}
