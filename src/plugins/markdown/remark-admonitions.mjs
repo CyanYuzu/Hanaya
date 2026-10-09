@@ -1,5 +1,3 @@
-import { visit } from "unist-util-visit";
-
 export const ELEGANTBOOK_CALLOUT_TYPES = Object.freeze([
 	"definition",
 	"theorem",
@@ -56,6 +54,59 @@ function escapeAttribute(value) {
 	return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
 }
 
+function stripBlockquotePrefixes(line) {
+	return line.replace(/^(?:[\t ]{0,3}>[\t ]?)+/, "");
+}
+
+/**
+ * Obsidian accepts a display equation on one line (`$$x^2$$`). remark-math
+ * parses that spelling as inline math, which puts large-operator limits beside
+ * the operator. Expand only standalone, non-code lines into flow math syntax.
+ */
+function normalizeObsidianDisplayMath(source) {
+	let fence = null;
+	return source
+		.split(/(\r?\n)/)
+		.map((part) => {
+			if (part === "\n" || part === "\r\n") return part;
+
+			const markdownLine = stripBlockquotePrefixes(part);
+			const fenceMatch = markdownLine.match(FENCE_OPENER);
+			if (fence) {
+				if (
+					fenceMatch &&
+					fenceMatch[1][0] === fence.character &&
+					fenceMatch[1].length >= fence.length &&
+					new RegExp(
+						`^[\\t ]{0,3}${fence.character}{${fence.length},}[\\t ]*$`,
+					).test(markdownLine)
+				) {
+					fence = null;
+				}
+				return part;
+			}
+
+			if (fenceMatch) {
+				fence = {
+					character: fenceMatch[1][0],
+					length: fenceMatch[1].length,
+				};
+				return part;
+			}
+
+			const match = part.match(
+				/^((?:[\t ]{0,3}>[\t ]?)*[\t ]{0,3})\$\$([^\r\n]+?)\$\$[\t ]*$/,
+			);
+			if (!match) return part;
+
+			const [, prefix, expression] = match;
+			const formula = expression.trim();
+			if (!formula) return part;
+			return `${prefix}$$\n${prefix}${formula}\n${prefix}$$`;
+		})
+		.join("");
+}
+
 /**
  * Normalizes Plume-style spaced container openers into remark-directive syntax.
  * Existing bracket labels and directive attributes pass through unchanged.
@@ -104,49 +155,67 @@ export function rewriteAdmonitionContainers(source) {
 		.join("");
 }
 
+function normalizeObsidianCallout(node) {
+	const [firstParagraph, ...remainingBlocks] = node.children;
+	if (firstParagraph?.type !== "paragraph") return null;
+	const [firstText, ...remainingInline] = firstParagraph.children;
+	if (firstText?.type !== "text") return null;
+
+	const [declaration, ...remainingLines] = firstText.value.split("\n");
+	const match = declaration.match(OBSIDIAN_CALLOUT);
+	if (!match) return null;
+
+	const [, rawType, rawMetadata, fold, rawTitle = ""] = match;
+	const type = rawType.toLowerCase();
+	if (
+		!STANDARD_CALLOUT_TYPES.has(type) &&
+		!ELEGANTBOOK_CALLOUT_NAMES.has(type)
+	) {
+		return null;
+	}
+
+	const firstLine = remainingLines.join("\n");
+	const paragraphChildren = [
+		...(firstLine ? [{ ...firstText, value: firstLine }] : []),
+		...remainingInline,
+	];
+	const alertChildren = [
+		...(paragraphChildren.length > 0
+			? [{ ...firstParagraph, children: paragraphChildren }]
+			: []),
+		...remainingBlocks,
+	];
+
+	const attributes = {};
+	const title = rawTitle.trim();
+	if (title) attributes.title = title;
+	if (rawMetadata) attributes.metadata = rawMetadata.split(",").join(" ");
+	if (fold) attributes.collapse = fold === "+" ? "open" : "closed";
+
+	return {
+		type: "containerDirective",
+		name: type === "details" ? "admonition-details" : type,
+		attributes,
+		children: alertChildren,
+		position: node.position,
+	};
+}
+
 function normalizeObsidianCallouts(tree) {
-	visit(tree, "blockquote", (node, index, parent) => {
-		if (typeof index !== "number" || !parent) return;
-		const [firstParagraph, ...remainingBlocks] = node.children;
-		if (firstParagraph?.type !== "paragraph") return;
-		const [firstText, ...remainingInline] = firstParagraph.children;
-		if (firstText?.type !== "text") return;
+	function visitChildren(node) {
+		if (!Array.isArray(node.children)) return;
 
-		const [declaration, ...remainingLines] = firstText.value.split("\n");
-		const match = declaration.match(OBSIDIAN_CALLOUT);
-		if (!match) return;
+		for (let index = 0; index < node.children.length; index += 1) {
+			const child = node.children[index];
+			visitChildren(child);
+			if (child.type !== "blockquote") continue;
 
-		const [, rawType, rawMetadata, fold, rawTitle = ""] = match;
-		const type = rawType.toLowerCase();
-		if (!STANDARD_CALLOUT_TYPES.has(type) && !ELEGANTBOOK_CALLOUT_NAMES.has(type)) {
-			return;
+			const callout = normalizeObsidianCallout(child);
+			if (callout) node.children[index] = callout;
 		}
+	}
 
-		const firstLine = remainingLines.join("\n");
-		const paragraphChildren = [
-			...(firstLine ? [{ ...firstText, value: firstLine }] : []),
-			...remainingInline,
-		];
-		const alertChildren = [
-			...(paragraphChildren.length > 0
-				? [{ ...firstParagraph, children: paragraphChildren }]
-				: []),
-			...remainingBlocks,
-		];
-
-		const attributes = {};
-		const title = rawTitle.trim();
-		if (title) attributes.title = title;
-		if (rawMetadata) attributes.metadata = rawMetadata.split(",").join(" ");
-		if (fold) attributes.collapse = fold === "+" ? "open" : "closed";
-
-		parent.children[index] = {
-			type: "containerDirective",
-			name: type === "details" ? "admonition-details" : type,
-			attributes,
-			children: alertChildren,
-		};
-	});
+	visitChildren(tree);
 }
 
 export function remarkAdmonitions() {
@@ -158,7 +227,9 @@ export function remarkAdmonitions() {
 	}
 
 	this.parser = function parseAdmonitions(source) {
-		return parser(rewriteAdmonitionContainers(source));
+		return parser(
+			normalizeObsidianDisplayMath(rewriteAdmonitionContainers(source)),
+		);
 	};
 
 	return normalizeObsidianCallouts;

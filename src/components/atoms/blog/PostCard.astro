@@ -107,7 +107,7 @@ const titleLabel =
 			{title}
 			<Icon class="m3-blog-postcard__arrow" name="material-symbols:chevron-right-rounded" />
 		</a>
-		{published && (
+		{(published || updated || category) && (
 			<PostMeta
 				class="m3-blog-postcard__meta"
 				{published}

@@ -86,7 +86,7 @@ Obsidian ElegantBook callout 也可以使用原生作者语法，例如 `> [!eb-
 Admonition 管线渲染；页面只有在 Markdown frontmatter 设置 `cssclass: elegantbook`
 或 `cssclasses: [elegantbook]` 时，才加载移植的 ElegantBook 页面与 callout 样式。
 
-组件根节点使用 `not-prose`，内部段落、列表、引用、代码与折叠标题的几何由 `markdown/admonitions.css` 完整拥有。不要把提示容器重新改成 `blockquote`，也不要把样式追加回 `markdown-extend.styl`：前者会泄漏通用引用样式，后者会让新旧样式入口重复竞争。独立演示页位于 `src/content/posts/admonitions.md`。
+组件根节点使用 `not-prose`，内部段落、列表、引用、代码与折叠标题的几何由 `markdown/admonitions.css` 完整拥有。嵌套的 Obsidian callout 会先从内向外归一化，确保外层转换后内层仍可渲染。不要把提示容器重新改成 `blockquote`，也不要把样式追加回 `markdown-extend.styl`：前者会泄漏通用引用样式，后者会让新旧样式入口重复竞争。独立演示页位于 `src/content/posts/admonitions.md`。
 
 ### 3.2 马克笔高亮
 
@@ -154,6 +154,10 @@ Bun 对应的完整 Markdown 正文。
 同步标识只接受字母、数字、点、下划线和连字符。具有相同标识且包含相同值的选项组会同步切换，并在读者主动切换后把该值写入独立的 `localStorage` 键；无标识的组互不影响。每组至少需要两个值不重复的选项，每个 `@tab` 标题后必须用空行分隔非空正文。标题支持行内 Markdown，正文支持完整块级 Markdown。前导混合内容、单选项、重复值、空正文或不完整结构会保留为普通 Markdown。
 
 SSR 输出不会预先隐藏任何面板，并重复输出每个面板标题，因此脚本不可用时仍能连续阅读全文。客户端模块只在页面实际包含 `.m3-option-group` 时动态加载，增强后才隐藏非活动面板并启用点击、方向键、Home/End、ARIA 状态、同 id 同步与记忆。初始化覆盖直接加载、Swup 内容替换和加密文章解锁；不使用 hydration、第三方依赖或网络请求。组件根节点使用 `not-prose`，选项栏保持单行并在自身范围内横向滑动；长标题截断但标签仍可点击，键盘切换只滚动该选项栏。窄屏边界和打印展开由 `markdown/option-groups.css` 完整拥有。独立演示页位于 `src/content/posts/option-groups.md`。
+
+### 3.6 数学公式
+
+行内公式使用 `$...$`。独占一行的 Obsidian 单行块公式 `$$...$$` 会在解析前转换为标准多行块公式；已有的 `$$` 独占分隔行写法也继续支持。块公式在正文、引用和折叠 callout 中都会按 KaTeX 的 display 模式渲染，使 `\sum` 等大型运算符的上下限显示在符号上下方。代码围栏中的示例保持原样。
 
 ## 4. 缓存与刷新
 

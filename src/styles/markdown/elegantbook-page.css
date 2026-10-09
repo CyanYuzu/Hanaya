@@ -7,13 +7,13 @@
 	--eb-paper: var(--surface, #fff);
 	--eb-ink: var(--on-surface, #1a1a1a);
 	--eb-tint: 5%;
-	--line-height-normal: 1.65;
+	--line-height-normal: 1.75;
 	--h1-color: rgb(var(--eb-structure));
 	--h2-color: rgb(var(--eb-structure));
 	--h3-color: rgb(var(--eb-structure));
 	width: min(100%, 850px);
 	margin-inline: auto;
-	line-height: 1.65;
+	line-height: 1.75;
 	color: var(--eb-ink);
 }
 

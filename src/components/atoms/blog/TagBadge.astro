@@ -6,20 +6,26 @@
  */
 interface Props {
 	name: string;
-	href: string;
+	href?: string;
 	class?: string;
 }
 
 const { name, href, class: className } = Astro.props;
 ---
 
-<a
-	class:list={["m3-blog-tagbadge", className]}
-	href={href}
-	aria-label={`View all posts with the ${name} tag`}
->
-	<span class="m3-blog-tagbadge__text">#&nbsp;{name}</span>
-</a>
+{href ? (
+	<a
+		class:list={["m3-blog-tagbadge", className]}
+		href={href}
+		aria-label={`View all posts with the ${name} tag`}
+	>
+		<span class="m3-blog-tagbadge__text">#&nbsp;{name}</span>
+	</a>
+) : (
+	<span class:list={["m3-blog-tagbadge", className]}>
+		<span class="m3-blog-tagbadge__text">#&nbsp;{name}</span>
+	</span>
+)}
 
 <style lang="stylus">
 .m3-blog-tagbadge

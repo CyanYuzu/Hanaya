@@ -1,28 +1,29 @@
 ---
 import { render } from "astro:content";
+import PostMeta from "@components/atoms/blog/PostMeta.astro";
 import Card from "@components/atoms/display/Card.svelte";
 import Markdown from "@components/content/Markdown.astro";
 import I18nKey from "@i18n/i18nKey";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { formatDateToYYYYMMDD } from "@utils/date-utils";
+import { resolveI18nText } from "@utils/i18n-utils";
 import { getMarkdownStylesheetAssets } from "@utils/markdown-assets";
 import { normalizeMarkdownCssClasses } from "@utils/markdown-css-classes";
-import { formatDateToYYYYMMDD } from "@utils/date-utils";
 import { getSourceMarkdownSyntaxSnapshot } from "@utils/markdown-source-syntaxes.mjs";
 import {
 	hasMarkdownSyntax,
 	mergeMarkdownSyntaxSnapshots,
 } from "@utils/markdown-syntaxes.mjs";
+import type { TextbookBook, TextbookChapter } from "@utils/textbook-content";
 import {
-	getTextbooks,
 	getTextbookChapterUrl,
+	getTextbooks,
 	getTextbookUrl,
 } from "@utils/textbook-content";
-import type { TextbookBook, TextbookChapter } from "@utils/textbook-content";
-import { resolveI18nText } from "@utils/i18n-utils";
 import { url } from "@utils/url-utils";
-import { textbooksConfig } from "@/config/textbooksConfig";
 import katexStylesheet from "katex/dist/katex.css?url";
 import overlayScrollbarsStylesheet from "overlayscrollbars/overlayscrollbars.css?url";
+import { textbooksConfig } from "@/config/textbooksConfig";
 
 interface Props {
 	book: TextbookBook;
@@ -55,9 +56,14 @@ const bookTitle = book.title;
 const bookDescription = book.entry.data.description;
 const bookUrl = url(getTextbookUrl(book.slug));
 const bookImage = book.entry.data.image || undefined;
-const bookDate = book.entry.data.published
+const bookPublished = book.entry.data.published
 	? formatDateToYYYYMMDD(book.entry.data.published)
 	: undefined;
+const bookUpdated = book.entry.data.updated
+	? formatDateToYYYYMMDD(book.entry.data.updated)
+	: undefined;
+const bookCategory = book.entry.data.category.trim();
+const bookTags = book.entry.data.tags.map((tag) => tag.trim()).filter(Boolean);
 const pageDescription = chapter
 	? chapter.entry.data.description || bookDescription || bookTitle
 	: bookDescription;
@@ -66,15 +72,15 @@ const rendered = chapter ? await render(chapter.entry) : undefined;
 const Content = rendered?.Content;
 const headings = rendered?.headings ?? [];
 let markdownStylesheetAssets: Array<{ pack: string; css: string }> = [];
-let markdownClasses: string[] = [];
+let markdownClasses = normalizeMarkdownCssClasses(
+	book.entry.data.cssclass,
+	book.entry.data.cssclasses,
+);
 let hasMath = false;
 
 if (chapter && rendered) {
 	const renderedSyntaxes = rendered.remarkPluginFrontmatter.markdownSyntaxes;
-	const sourceSyntaxes = hasMarkdownSyntax(
-		renderedSyntaxes,
-		"expressive-code",
-	)
+	const sourceSyntaxes = hasMarkdownSyntax(renderedSyntaxes, "expressive-code")
 		? undefined
 		: getSourceMarkdownSyntaxSnapshot(chapter.entry.body);
 	const markdownSyntaxes = mergeMarkdownSyntaxSnapshots(
@@ -92,6 +98,11 @@ if (chapter && rendered) {
 		markdownClasses,
 	);
 	hasMath = hasMarkdownSyntax(markdownSyntaxes, "math");
+} else {
+	markdownStylesheetAssets = await getMarkdownStylesheetAssets(
+		{ schema: 1, syntaxes: [] },
+		markdownClasses,
+	);
 }
 
 const pageTitle = chapter?.title ?? bookTitle;
@@ -102,14 +113,14 @@ const pageTitle = chapter?.title ?? bookTitle;
 	banner={bookImage}
 	ogImage={bookImage}
 	description={pageDescription}
-	bannerDate={bookDate}
+	bannerDate={bookPublished}
 	setOGTypeArticle={true}
 	page={chapter ? "textbookChapter" : "textbooks"}
 	{headings}
 >
 	{chapter && hasMath && <link slot="head" rel="stylesheet" data-swup-optional="math" href={katexStylesheet} />}
 	{chapter && hasMath && <link slot="head" rel="stylesheet" data-swup-optional="math" href={overlayScrollbarsStylesheet} />}
-	{chapter && markdownStylesheetAssets.map(({ pack, css }) => (
+	{markdownStylesheetAssets.map(({ pack, css }) => (
 		<style is:inline slot="head" data-swup-optional={pack} set:html={css}></style>
 	))}
 	{chapter ? (
@@ -120,7 +131,12 @@ const pageTitle = chapter?.title ?? bookTitle;
 					<span aria-hidden="true"> / </span>
 					<a href={bookUrl}>{bookTitle}</a>
 				</nav>
-				<h1 class="mb-5 text-2xl font-bold text-[var(--on-surface)]">
+				<h1
+					class="mb-5 text-2xl font-bold text-[var(--on-surface)]"
+					data-pagefind-body
+					data-pagefind-weight="10"
+					data-pagefind-meta="title"
+				>
 					{chapter.title}
 				</h1>
 				<Markdown class={`mb-6 onload-animation ${markdownClasses.join(" ")}`}>
@@ -129,28 +145,52 @@ const pageTitle = chapter?.title ?? bookTitle;
 			</Card>
 		</article>
 	) : (
-		<section class="flex flex-col gap-4">
-			<nav class="text-sm text-[var(--on-surface-variant)]" aria-label={backLabel}>
-				<a href={url("/textbooks/")}>{backLabel}</a>
-			</nav>
+		<article class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative mb-4">
 			<Card variant="outlined" class="w-full px-6 py-6 md:px-9">
-				<h2 class="mb-4 text-xl font-semibold text-[var(--on-surface)]">
-					{contentsLabel}
-				</h2>
-				{book.chapters.length > 0 ? (
-					<ol class="flex flex-col gap-2">
-						{book.chapters.map((item) => (
-							<li>
-								<a href={url(getTextbookChapterUrl(book.slug, item.slug))}>
-									{item.title}
-								</a>
-							</li>
-						))}
-					</ol>
-				) : (
-					<p>{resolveI18nText("$t:textbooksEmpty", I18nKey.textbooksEmpty)}</p>
-				)}
+				<Markdown class={`mb-6 onload-animation ${markdownClasses.join(" ")}`}>
+					<nav class="mb-5 text-sm text-[var(--on-surface-variant)]" aria-label={backLabel}>
+						<a href={url("/textbooks/")}>{backLabel}</a>
+					</nav>
+					<h1
+						class="mb-5 text-2xl font-bold text-[var(--on-surface)]"
+						data-pagefind-body
+						data-pagefind-weight="10"
+						data-pagefind-meta="title"
+					>
+						{bookTitle}
+					</h1>
+					<PostMeta
+						class="mb-5"
+						published={bookPublished}
+						updated={bookUpdated}
+						category={bookCategory ? { name: bookCategory } : null}
+						tags={bookTags.map((name) => ({ name }))}
+					/>
+					{bookImage && (
+						<img
+							src={bookImage}
+							alt={bookTitle}
+							loading="lazy"
+							decoding="async"
+						/>
+					)}
+					{bookDescription && <p>{bookDescription}</p>}
+					<h2>{contentsLabel}</h2>
+					{book.chapters.length > 0 ? (
+						<ol>
+							{book.chapters.map((item) => (
+								<li>
+									<a href={url(getTextbookChapterUrl(book.slug, item.slug))}>
+										{item.title}
+									</a>
+								</li>
+							))}
+						</ol>
+					) : (
+						<p>{resolveI18nText("$t:textbooksEmpty", I18nKey.textbooksEmpty)}</p>
+					)}
+				</Markdown>
 			</Card>
-		</section>
+		</article>
 	)}
 </MainGridLayout>
