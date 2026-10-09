@@ -1,0 +1,100 @@
+---
+import { POST_CARD_MIN_WIDTH, postListConfig } from "@/config/postListConfig";
+
+interface Props {
+	class?: string;
+	label?: string;
+}
+
+const { class: className, label } = Astro.props;
+const { mode, cover, cardWidth } = postListConfig.layout;
+---
+
+<div class:list={["m3e-post-list-shell", `m3e-post-list-shell--${cardWidth}`, className]}>
+	<div
+		id="post-list"
+		class:list={[
+			"transition m3e-post-list mb-4",
+			`m3e-post-list--${mode}`,
+			{ "m3e-post-list--cover-left": mode === "list" && cover === "left" },
+		]}
+		data-layout-mode={mode}
+		style={`--post-card-min: ${POST_CARD_MIN_WIDTH[cardWidth]};`}
+		aria-label={label}
+	>
+		<slot />
+	</div>
+</div>
+
+<style lang="stylus">
+@import "../../styles/breakpoints.styl"
+
+.m3e-post-list-shell
+	container: post-list-layout / inline-size
+
+.m3e-post-list
+	display: flex
+	flex-direction: column
+	gap: var(--m3e-space-4)
+
+activate-post-grid()
+	display: grid
+	grid-template-columns: repeat(auto-fill, minmax(var(--post-card-min, 20rem), 1fr))
+	align-items: start
+	grid-auto-rows: 8px
+	row-gap: 0
+	column-gap: var(--m3e-space-4)
+
+@media (min-width: bp-md)
+	@container post-list-layout (min-width: 41rem)
+		.m3e-post-list-shell--compact .m3e-post-list--grid
+			activate-post-grid()
+
+	@container post-list-layout (min-width: 49rem)
+		.m3e-post-list-shell--regular .m3e-post-list--grid
+			activate-post-grid()
+
+	@container post-list-layout (min-width: 57rem)
+		.m3e-post-list-shell--relaxed .m3e-post-list--grid
+			activate-post-grid()
+</style>
+
+<script is:inline>
+(function () {
+	var el = document.getElementById("post-list");
+	if (!el) return;
+	var mode = localStorage.getItem("post-list-mode");
+	if (mode !== "list" && mode !== "grid") return;
+	if (mode !== el.getAttribute("data-layout-mode")) {
+		el.classList.remove("m3e-post-list--list", "m3e-post-list--grid");
+		el.classList.add("m3e-post-list--" + mode);
+		el.setAttribute("data-layout-mode", mode);
+	}
+	if (mode !== "grid") return;
+	var columns = getComputedStyle(el).gridTemplateColumns.split(" ").filter(Boolean).length;
+	if (columns <= 1) return;
+	var heights = new Array(columns).fill(0);
+	var cards = el.children;
+	for (var i = 0; i < cards.length; i++) {
+		var card = cards[i];
+		var shortest = 0;
+		for (var column = 1; column < columns; column++) {
+			if (heights[column] < heights[shortest]) shortest = column;
+		}
+		var height = card.offsetHeight + 16;
+		card.style.gridColumnStart = String(shortest + 1);
+		card.style.gridRowEnd = "span " + Math.ceil(height / 8);
+		heights[shortest] += height;
+	}
+})();
+</script>
+
+<script>
+	import { packMasonry, setupMasonry } from "@utils/masonry";
+
+	const container = document.getElementById("post-list");
+	if (container) {
+		setupMasonry(container);
+		document.fonts?.ready.then(() => packMasonry(container));
+	}
+</script>

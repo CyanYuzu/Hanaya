@@ -11,7 +11,7 @@ import { getCategoryUrl, getTagUrl } from "@utils/url-utils";
 
 interface Props {
 	class?: string;
-	published: Date;
+	published?: Date;
 	updated?: Date;
 	tags: string[];
 	category: string | null;
@@ -34,7 +34,7 @@ const tagLinks = tags.map((t) => ({ name: t.trim(), href: getTagUrl(t) }));
 
 <PostMeta
 	class={className}
-	published={formatDateToYYYYMMDD(published)}
+	published={published ? formatDateToYYYYMMDD(published) : undefined}
 	updated={updated ? formatDateToYYYYMMDD(updated) : undefined}
 	category={categoryLink}
 	tags={tagLinks}

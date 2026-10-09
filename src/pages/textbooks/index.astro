@@ -1,5 +1,6 @@
 ---
 import PostCard from "@components/atoms/blog/PostCard.astro";
+import PostCardList from "@components/organisms/PostCardList.astro";
 import I18nKey from "@i18n/i18nKey";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
 import { formatDateToYYYYMMDD } from "@utils/date-utils";
@@ -21,41 +22,42 @@ const books = await getTextbooks();
 ---
 
 <MainGridLayout title={title} description={description} page="textbooks">
-	<section class="flex flex-col gap-4" aria-label={title}>
-		{books.length > 0 ? (
-			books.map((book) => (
-				<PostCard
-					href={url(getTextbookUrl(book.slug))}
-					title={book.title}
-					description={book.entry.data.description}
-					image={book.entry.data.image || undefined}
-					imageAlt={book.title}
-					published={
-						book.entry.data.published
-							? formatDateToYYYYMMDD(book.entry.data.published)
-							: undefined
-					}
-					updated={
-						book.entry.data.updated
-							? formatDateToYYYYMMDD(book.entry.data.updated)
-							: undefined
-					}
-					category={
-						book.entry.data.category.trim()
-							? { name: book.entry.data.category.trim() }
-							: null
-					}
-					tags={book.entry.data.tags
-						.map((name) => name.trim())
-						.filter(Boolean)
-						.map((name) => ({ name }))}
-					class="onload-animation"
-				/>
-			))
-		) : (
-			<p class="text-[var(--on-surface-variant)]">
-				{resolveI18nText("$t:textbooksEmpty", I18nKey.textbooksEmpty)}
-			</p>
-		)}
-	</section>
+	<PostCardList label={title}>
+			{books.length > 0 ? (
+				books.map((book, index) => (
+					<PostCard
+						href={url(getTextbookUrl(book.slug))}
+						title={book.title}
+						description={book.entry.data.description}
+						image={book.entry.data.image || undefined}
+						imageAlt={book.title}
+						published={
+							book.entry.data.published
+								? formatDateToYYYYMMDD(book.entry.data.published)
+								: undefined
+						}
+						updated={
+							book.entry.data.updated
+								? formatDateToYYYYMMDD(book.entry.data.updated)
+								: undefined
+						}
+						category={
+							book.entry.data.category.trim()
+								? { name: book.entry.data.category.trim() }
+								: null
+						}
+						tags={book.entry.data.tags
+							.map((name) => name.trim())
+							.filter(Boolean)
+							.map((name) => ({ name }))}
+						class="onload-animation"
+						style={`animation-delay: calc(var(--content-delay) + ${index * 50}ms);`}
+					/>
+				))
+			) : (
+				<p class="text-[var(--on-surface-variant)]">
+					{resolveI18nText("$t:textbooksEmpty", I18nKey.textbooksEmpty)}
+				</p>
+			)}
+	</PostCardList>
 </MainGridLayout>
