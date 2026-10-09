@@ -65,7 +65,7 @@ export class FancyboxHandler {
 			".image-grid__link",
 		)) {
 			const img = link.querySelector("img");
-			const target = img?.currentSrc || img?.dataset.lazySrc || img?.src;
+			const target = img?.currentSrc || img?.src;
 			if (target) {
 				link.href = target;
 			}

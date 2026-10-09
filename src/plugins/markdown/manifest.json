@@ -909,10 +909,7 @@
 			"styles": ["src/styles/markdown/image-grids.css"],
 			"runtime": {
 				"mode": "client-enhanced",
-				"modules": [
-					"src/utils/fancybox-handler.ts",
-					"src/utils/markdown-media-lazy.ts"
-				],
+				"modules": ["src/utils/fancybox-handler.ts"],
 				"network": ["author-declared image URLs only"]
 			},
 			"docs": ["src/content/posts/image-grid-demo/index.md"],
@@ -954,8 +951,8 @@
 			"registeredIn": "src/utils/markdown-processor.mjs",
 			"styles": ["src/styles/markdown/image-presentations.css"],
 			"runtime": {
-				"mode": "client-enhanced",
-				"modules": ["src/utils/markdown-media-lazy.ts"],
+				"mode": "none",
+				"modules": [],
 				"network": ["author-declared image URLs only"]
 			},
 			"docs": [

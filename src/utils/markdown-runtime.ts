@@ -12,22 +12,6 @@ function hasMatch(root: ParentNode, selector: string): boolean {
 
 const runtimeDescriptors: MarkdownRuntimeDescriptor[] = [
 	{
-		selector: [
-			"img[data-lazy-media]",
-			"iframe[data-lazy-media]",
-			"video[data-lazy-media]",
-			"audio[data-lazy-media]",
-			"object[data-lazy-media]",
-			"embed[data-lazy-media]",
-		].join(", "),
-		initialize: async (root) => {
-			const { initMarkdownMediaLazyLoading } = await import(
-				"./markdown-media-lazy"
-			);
-			initMarkdownMediaLazyLoading(root);
-		},
-	},
-	{
 		selector: "[data-audio-reader]",
 		initialize: async (root) => {
 			const { initAudioReaders } = await import("./audio-reader");

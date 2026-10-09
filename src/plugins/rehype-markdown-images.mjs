@@ -9,11 +9,8 @@ import sharp from "sharp";
  * 语法：`![图片描述 w-50%](图片链接 "图片标题")`
  * - `w-N%`（1~100）写在 alt 文本中，解析后从 alt 移除并作为显示宽度（居中）；
  * - `"图片标题"` 渲染为图片下方的可见图注；
- * - 正文图片保存为 `data-lazy-src`，进入视口附近后由共享运行时恢复，
- *   并输出 `<noscript>` 回退；未知尺寸图片先保留临时占位比例，加载完成
- *   后恢复原样式；不延迟 Markdown 文字。
- * - 独立成段的图片在带标题或宽度令牌时包装为 `<figure>`，并补齐
- *   `loading="lazy"` / `decoding="async"`。
+ * - 独立成段的图片在带标题或宽度令牌时包装为 `<figure>`，否则仅补齐
+ *   `loading="lazy"` / `decoding="async"`，不改变既有排版。
  * - 原始 HTML `<img>` 使用同一套规则；匹配配置域名时补充
  *   `referrerpolicy="no-referrer"`。
  *
@@ -37,241 +34,6 @@ function hasNoEnhance(node) {
 		properties &&
 		("dataNoEnhance" in properties || "data-no-enhance" in properties)
 	);
-}
-
-function cloneNode(node) {
-	if (Array.isArray(node)) return node.map(cloneNode);
-	if (!node || typeof node !== "object") return node;
-
-	return {
-		...node,
-		...(node.properties
-			? {
-					properties: Object.fromEntries(
-						Object.entries(node.properties).map(([key, value]) => [
-							key,
-							Array.isArray(value) ? [...value] : value,
-						]),
-					),
-				}
-			: {}),
-		...(node.children ? { children: node.children.map(cloneNode) } : {}),
-	};
-}
-
-function createNoScriptFallback(node) {
-	const fallback = cloneNode(node);
-	const restoreDeferredSources = (current) => {
-		if (current?.type !== "element") return;
-		current.properties ??= {};
-		delete current.properties.id;
-		for (const [dataProperty, sourceProperty] of [
-			["dataLazySrc", "src"],
-			["dataLazySrcset", "srcSet"],
-			["dataLazyPoster", "poster"],
-			["dataLazyData", "data"],
-		]) {
-			if (current.properties[dataProperty] == null) continue;
-			current.properties[sourceProperty] = current.properties[dataProperty];
-			delete current.properties[dataProperty];
-		}
-		if (current.properties.dataLazyPlaceholder != null) {
-			const originalStyle = current.properties.dataLazyOriginalStyle;
-			if (typeof originalStyle === "string" && originalStyle) {
-				current.properties.style = originalStyle;
-			} else {
-				delete current.properties.style;
-			}
-			delete current.properties.dataLazyPlaceholder;
-			delete current.properties.dataLazyOriginalStyle;
-		}
-		delete current.properties.dataLazyMedia;
-		delete current.properties.dataLazyBound;
-		for (const child of current.children ?? []) restoreDeferredSources(child);
-	};
-	const visit = (current) => {
-		if (current?.type !== "element") return;
-		if (current.tagName === "img") {
-			current.properties ??= {};
-			current.properties.loading ??= "lazy";
-			current.properties.decoding ??= "async";
-		}
-		for (const child of current.children ?? []) visit(child);
-	};
-	restoreDeferredSources(fallback);
-	visit(fallback);
-
-	return {
-		type: "element",
-		tagName: "noscript",
-		properties: { dataPagefindIgnore: true },
-		children: [fallback],
-	};
-}
-
-function movePropertyToData(properties, propertyName, dataPropertyName) {
-	const propertyAliases =
-		propertyName === "srcSet" ? ["srcSet", "srcset"] : [propertyName];
-	const key = propertyAliases.find((candidate) => properties[candidate] != null);
-	if (!key) return false;
-
-	const value = properties[key];
-	if (typeof value !== "string" || !value.trim()) return false;
-
-	properties[dataPropertyName] = value;
-	delete properties[key];
-	return true;
-}
-
-function hasMediaSource(node) {
-	if (node?.type !== "element") return false;
-	const properties = node.properties ?? {};
-	const ownSource = {
-		img: ["src", "srcSet", "srcset"],
-		iframe: ["src"],
-		video: ["src", "poster"],
-		audio: ["src"],
-		source: ["src", "srcSet", "srcset"],
-		track: ["src"],
-		object: ["data"],
-		embed: ["src"],
-	}[node.tagName];
-	if (
-		ownSource?.some((property) => {
-			const value = properties[property];
-			return value != null && String(value).trim().length > 0;
-		})
-	) {
-		return true;
-	}
-	return (node.children ?? []).some(hasMediaSource);
-}
-
-function hasDeferredMediaSource(node) {
-	if (node?.type !== "element") return false;
-	const properties = node.properties ?? {};
-	if (
-		["dataLazySrc", "dataLazySrcset", "dataLazyPoster", "dataLazyData"].some(
-			(property) => properties[property] != null,
-		)
-	) {
-		return true;
-	}
-	return (node.children ?? []).some(hasDeferredMediaSource);
-}
-
-function hasEagerImage(node) {
-	if (node?.type !== "element") return false;
-	if (node.tagName === "img" && node.properties?.loading === "eager") {
-		return true;
-	}
-	return (node.children ?? []).some(hasEagerImage);
-}
-
-function findFirstImage(node) {
-	if (node?.type !== "element") return null;
-	if (node.tagName === "img") return node;
-	for (const child of node.children ?? []) {
-		const image = findFirstImage(child);
-		if (image) return image;
-	}
-	return null;
-}
-
-function hasReservedImageSpace(image, ancestors) {
-	const properties = image.properties ?? {};
-	if (Number(properties.width) > 0 && Number(properties.height) > 0) return true;
-
-	return [...ancestors, image].some((node) => {
-		if (classNames(node).includes("image-grid__link")) return true;
-		return /(?:^|;)\s*aspect-ratio\s*:/i.test(
-			String(node?.properties?.style ?? ""),
-		);
-	});
-}
-
-function reserveImageSpace(image, ancestors) {
-	image.properties ??= {};
-	if (
-		image.properties.dataLazyPlaceholder != null ||
-		hasReservedImageSpace(image, ancestors)
-	) {
-		return;
-	}
-	image.properties.dataLazyPlaceholder = "true";
-	image.properties.dataLazyOriginalStyle =
-		typeof image.properties.style === "string" ? image.properties.style : "";
-	image.properties.style = appendStyle(
-		appendStyle(image.properties.style, "width: 100%"),
-		"aspect-ratio: 16 / 9",
-	);
-}
-
-function clearImageSpacePlaceholder(image) {
-	if (image.properties?.dataLazyPlaceholder == null) return;
-	const originalStyle = image.properties.dataLazyOriginalStyle;
-	if (typeof originalStyle === "string" && originalStyle) {
-		image.properties.style = originalStyle;
-	} else {
-		delete image.properties.style;
-	}
-	delete image.properties.dataLazyPlaceholder;
-	delete image.properties.dataLazyOriginalStyle;
-}
-
-function deferImageSource(image, ancestors) {
-	image.properties ??= {};
-	if (image.properties.loading === "eager") return false;
-	const hasImageSource = ["src", "srcSet", "srcset"].some((property) => {
-		const value = image.properties[property];
-		return value != null && String(value).trim().length > 0;
-	});
-	if (!hasImageSource) return false;
-	// A dimensionless image with no src collapses to zero height, causing every
-	// later image to appear near the top of a long article. Reserve a temporary
-	// frame so IntersectionObserver can load images progressively.
-	reserveImageSpace(image, ancestors);
-	const movedSrc = movePropertyToData(
-		image.properties,
-		"src",
-		"dataLazySrc",
-	);
-	const movedSrcSet = movePropertyToData(
-		image.properties,
-		"srcSet",
-		"dataLazySrcset",
-	);
-	if (movedSrc || movedSrcSet) image.properties.dataLazyMedia = "true";
-	return movedSrc || movedSrcSet;
-}
-
-function deferMediaSource(node) {
-	if (node?.type !== "element") return false;
-	node.properties ??= {};
-	const properties = node.properties;
-	const tagName = node.tagName;
-	let deferred = false;
-
-	if (tagName === "iframe") {
-		properties.loading ??= "lazy";
-		if (properties.loading === "eager") return false;
-		deferred = movePropertyToData(properties, "src", "dataLazySrc");
-	} else if (tagName === "video" || tagName === "audio") {
-		properties.preload ??= "none";
-		deferred = movePropertyToData(properties, "src", "dataLazySrc");
-		if (tagName === "video") {
-			deferred =
-				movePropertyToData(properties, "poster", "dataLazyPoster") || deferred;
-		}
-		deferred = hasMediaSource(node) || deferred;
-	} else if (tagName === "object") {
-		deferred = movePropertyToData(properties, "data", "dataLazyData");
-	} else if (tagName === "embed") {
-		deferred = movePropertyToData(properties, "src", "dataLazySrc");
-	}
-
-	if (deferred) properties.dataLazyMedia = "true";
-	return deferred;
 }
 
 function shouldSkipEnhancement(ancestors, image) {
@@ -412,7 +174,6 @@ async function enhanceImage(image, ancestors, allowFigure, options, filePath) {
 	// 零额外负担：所有正文图片统一惰性加载与异步解码
 	properties.loading ??= "lazy";
 	properties.decoding ??= "async";
-	if (properties.loading === "lazy") properties.fetchPriority ??= "low";
 	if (properties.width == null || properties.height == null) {
 		const dimensions = await readImageDimensions(
 			String(properties.src ?? ""),
@@ -421,7 +182,6 @@ async function enhanceImage(image, ancestors, allowFigure, options, filePath) {
 		if (dimensions) {
 			properties.width ??= dimensions.width;
 			properties.height ??= dimensions.height;
-			clearImageSpacePlaceholder(image);
 		}
 	}
 	if (
@@ -460,16 +220,10 @@ async function transformChildren(
 	allowFigure = true,
 ) {
 	const nextChildren = [];
-	const canWrapChildImage =
-		allowFigure && parent.tagName !== "p" && parent.tagName !== "picture";
+	const canWrapChildImage = allowFigure && parent.tagName !== "p";
 
 	for (const child of parent.children ?? []) {
-		if (
-			child.type === "raw" &&
-			/<(?:img|picture|iframe|video|audio|source|track|object|embed)\b/i.test(
-				child.value ?? "",
-			)
-		) {
+		if (child.type === "raw" && /<img\b/i.test(child.value ?? "")) {
 			const fragment = fromHtml(child.value, { fragment: true });
 			await transformChildren(
 				fragment,
@@ -487,128 +241,32 @@ async function transformChildren(
 			continue;
 		}
 
-		if (child.tagName === "picture") {
-			const hasFallback = hasMediaSource(child);
-			await transformChildren(
-				child,
-				[...ancestors, child],
-				options,
-				filePath,
-				false,
-			);
-			nextChildren.push(child);
-			if (hasFallback && hasDeferredMediaSource(child)) {
-				nextChildren.push(createNoScriptFallback(child));
-			}
-			continue;
-		}
-
 		if (child.tagName === "p") {
 			const image = onlyImageChild(child);
 			if (image) {
-				const insidePicture = ancestors.some(
-					(node) => node.tagName === "picture",
+				nextChildren.push(
+					await enhanceImage(
+						image,
+						[...ancestors, child],
+						true,
+						options,
+						filePath,
+					),
 				);
-				const enhancedImage = await enhanceImage(
-					image,
-					[...ancestors, child],
-					true,
-					options,
-					filePath,
-				);
-				const deferred = deferImageSource(image, [
-					...ancestors,
-					child,
-				]);
-				nextChildren.push(enhancedImage);
-				if (deferred && !insidePicture) {
-					nextChildren.push(createNoScriptFallback(image));
-				}
 				continue;
 			}
 		}
 
 		if (child.tagName === "img") {
-			const insidePicture = ancestors.some(
-				(node) => node.tagName === "picture",
+			nextChildren.push(
+				await enhanceImage(
+					child,
+					ancestors,
+					canWrapChildImage,
+					options,
+					filePath,
+				),
 			);
-			const enhancedImage = await enhanceImage(
-				child,
-				ancestors,
-				canWrapChildImage,
-				options,
-				filePath,
-			);
-			const deferred = deferImageSource(child, ancestors);
-			nextChildren.push(enhancedImage);
-			if (deferred && !insidePicture) {
-				nextChildren.push(createNoScriptFallback(child));
-			}
-			continue;
-		}
-
-		if (
-			child.tagName === "source" &&
-			ancestors.some((node) => node.tagName === "picture")
-		) {
-			const picture = ancestors.find((node) => node.tagName === "picture");
-			if (picture && hasEagerImage(picture)) {
-				nextChildren.push(child);
-				continue;
-			}
-			const image = picture ? findFirstImage(picture) : null;
-			child.properties ??= {};
-			const deferred = movePropertyToData(
-				child.properties,
-				"srcSet",
-				"dataLazySrcset",
-			);
-			if (deferred && picture) {
-				if (image) {
-					image.properties ??= {};
-					reserveImageSpace(image, ancestors);
-					image.properties.loading ??= "lazy";
-					image.properties.decoding ??= "async";
-					image.properties.dataLazyMedia = "true";
-				}
-			}
-			nextChildren.push(child);
-			continue;
-		}
-
-		if (
-			(child.tagName === "source" || child.tagName === "track") &&
-			ancestors.some((node) => node.tagName === "video" || node.tagName === "audio") &&
-			!ancestors.some(
-				(node) =>
-				node.tagName === "audio" && node.properties?.hidden != null,
-			)
-		) {
-			child.properties ??= {};
-			movePropertyToData(child.properties, "src", "dataLazySrc");
-			nextChildren.push(child);
-			continue;
-		}
-
-		if (["iframe", "video", "audio", "object", "embed"].includes(child.tagName)) {
-			const hasFallback = hasMediaSource(child);
-			const hiddenAudio =
-				child.tagName === "audio" && child.properties?.hidden != null;
-			const deferred = hiddenAudio
-				? false
-				: deferMediaSource(child);
-			if (hiddenAudio) child.properties.preload ??= "none";
-			await transformChildren(
-				child,
-				[...ancestors, child],
-				options,
-				filePath,
-				canWrapChildImage,
-			);
-			nextChildren.push(child);
-			if (deferred && hasFallback) {
-				nextChildren.push(createNoScriptFallback(child));
-			}
 			continue;
 		}
 
@@ -626,7 +284,7 @@ async function transformChildren(
 }
 
 /**
- * 对 Markdown 中的图片和嵌入媒体应用统一增强与视口附近加载规则。
+ * 对 Markdown 图片应用统一的宽度/图注/惰性加载规则。
  */
 export function rehypeMarkdownImages(options = {}) {
 	const normalizedOptions = {
