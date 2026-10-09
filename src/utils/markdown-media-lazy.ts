@@ -11,6 +11,12 @@ const LAZY_RESOURCE_SELECTOR =
 
 type LazyMediaElement = HTMLElement & { dataset: DOMStringMap };
 
+let observer: IntersectionObserver | null = null;
+let scrollSettleTimer: number | undefined;
+let isScrolling = false;
+let lifecycleBound = false;
+const observedMedia = new Set<LazyMediaElement>();
+
 function getResources(media: LazyMediaElement): HTMLElement[] {
 	const scope =
 		media.tagName === "IMG" && media.parentElement?.tagName === "PICTURE"
@@ -72,7 +78,83 @@ function loadMedia(media: LazyMediaElement): void {
 	media.removeAttribute("data-lazy-bound");
 }
 
-/** Loads Markdown media only when it is within 700px of the viewport. */
+function removeDetachedMedia(): void {
+	for (const media of observedMedia) {
+		if (media.isConnected) continue;
+		observer?.unobserve(media);
+		media.removeAttribute("data-lazy-bound");
+		observedMedia.delete(media);
+	}
+}
+
+function observeCurrentMedia(): void {
+	if (!observer) return;
+	removeDetachedMedia();
+	observer.disconnect();
+	for (const media of observedMedia) observer.observe(media);
+}
+
+function isNearCurrentViewport(media: LazyMediaElement): boolean {
+	const rect = media.getBoundingClientRect();
+	return (
+		rect.bottom > 100 &&
+		rect.top < window.innerHeight + 700 &&
+		rect.right > 0 &&
+		rect.left < window.innerWidth
+	);
+}
+
+function onScroll(): void {
+	if (!observer) return;
+	isScrolling = true;
+	if (scrollSettleTimer !== undefined) {
+		window.clearTimeout(scrollSettleTimer);
+	}
+	scrollSettleTimer = window.setTimeout(() => {
+		isScrolling = false;
+		observeCurrentMedia();
+	}, 160);
+}
+
+function ensureObserver(): IntersectionObserver | null {
+	if (observer) return observer;
+	if (!("IntersectionObserver" in window)) return null;
+
+	observer = new IntersectionObserver(
+		(entries) => {
+			for (const entry of entries) {
+				const target = entry.target as LazyMediaElement;
+				if (!target.isConnected) {
+					observer?.unobserve(target);
+					observedMedia.delete(target);
+					continue;
+				}
+				if (
+					!entry.isIntersecting ||
+					isScrolling ||
+					!isNearCurrentViewport(target)
+				) {
+					continue;
+				}
+				observer?.unobserve(target);
+				observedMedia.delete(target);
+				loadMedia(target);
+			}
+		},
+		// Don't preload above the viewport: media there can otherwise change the
+		// measured position of an anchor heading immediately after TOC navigation.
+		{ rootMargin: "-100px 0px 700px 0px" },
+	);
+
+	if (!lifecycleBound) {
+		window.addEventListener("scroll", onScroll, { passive: true });
+		document.addEventListener("swup:content:replace", removeDetachedMedia);
+		lifecycleBound = true;
+	}
+	return observer;
+}
+
+/** Loads media in view or up to 700px below, after scrolling settles. */
 export function initMarkdownMediaLazyLoading(root: ParentNode = document): void {
 	if (typeof document === "undefined") return;
 
@@ -85,25 +167,15 @@ export function initMarkdownMediaLazyLoading(root: ParentNode = document): void 
 
 	if (media.length === 0) return;
 
-	if (!("IntersectionObserver" in window)) {
+	const mediaObserver = ensureObserver();
+	if (!mediaObserver) {
 		media.forEach(loadMedia);
 		return;
 	}
 
-	const observer = new IntersectionObserver(
-		(entries) => {
-			for (const entry of entries) {
-				if (!entry.isIntersecting) continue;
-				const target = entry.target as LazyMediaElement;
-				observer.unobserve(target);
-				loadMedia(target);
-			}
-		},
-		{ rootMargin: "700px 0px" },
-	);
-
 	for (const element of media) {
 		element.dataset.lazyBound = "true";
-		observer.observe(element);
+		observedMedia.add(element);
+		mediaObserver.observe(element);
 	}
 }

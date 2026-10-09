@@ -68,7 +68,7 @@
 
 基础层随文章页面加载，负责普通段落、标题、列表、引用、表格、链接、行内代码和普通图片。它不能包含独立自定义语法的完整组件样式。
 
-正文图片和原始 HTML 中的图片、iframe、video、audio、object、embed 会在 SSR 中保留结构及文本，资源地址暂存到 `data-lazy-*`，进入视口上下 700px 范围后才恢复；不支持 `IntersectionObserver` 时直接恢复。没有尺寸信息的图片加载前使用临时 16:9 占位，图片加载完成后恢复作者原有样式，避免长文后续图片因高度塌缩而同时进入观察范围。被延迟的图片和嵌入媒体保留 `<noscript>` 回退，文字和标题不延迟。带显式 `loading="eager"` 的图片或 iframe 按作者设置立即加载。隐藏的音频阅读器继续使用 `preload="none"`，由播放操作触发读取。
+正文图片和原始 HTML 中的图片、iframe、video、audio、object、embed 会在 SSR 中保留结构及文本，资源地址暂存到 `data-lazy-*`；滚动期间暂停加载，停止滚动 160ms 后重新计算位置，仅加载可视范围和视口下方 700px 的媒体，并将视口顶部 100px 排除出触发区，以保护目录锚点。没有尺寸信息的图片加载前使用临时 16:9 占位，图片加载完成后恢复作者原有样式。被延迟的图片和嵌入媒体保留 `<noscript>` 回退，文字和标题不延迟。带显式 `loading="eager"` 的图片或 iframe 按作者设置立即加载。隐藏的音频阅读器继续使用 `preload="none"`，由播放操作触发读取。不支持 `IntersectionObserver` 时直接恢复资源。
 
 基础层当前由以下入口共同拥有：
 
@@ -154,8 +154,8 @@ type MarkdownSyntaxSnapshot = {
 | content-annotation | inline enhancements | 无 | 条件 CSS，原生 Popover |
 | expressive-code | code | `code-copy.ts`、`code-collapse.ts` | 条件 CSS + 分离的动态 JS |
 | file-tree | disclosures + trees | 无 | 条件 CSS，原生 `<details>` |
-| image-grid | media | `markdown-media-lazy.ts`、Fancybox | 条件 CSS；图片距视口 700px 内加载，灯箱等待用户意图 |
-| image-presentation | media | `markdown-media-lazy.ts` | 条件 CSS；图片距视口 700px 内加载，SSR 保留无脚本回退 |
+| image-grid | media | `markdown-media-lazy.ts`、Fancybox | 停止滚动后加载可视区与下方 700px 内图片，灯箱等待用户意图 |
+| image-presentation | media | `markdown-media-lazy.ts` | 停止滚动后加载可视区与下方 700px 内图片，SSR 保留无脚本回退 |
 | marker | inline enhancements | 无 | 条件 CSS，纯 SSR |
 | math | math | `katex-scroll.ts` | 条件第三方 CSS + 选择器动态 JS |
 | mermaid | Mermaid 专用样式 | `mermaid.ts`、`mermaid-interaction.ts` | 可读 fallback；样式严格按页管理，运行时首次命中加载 |
