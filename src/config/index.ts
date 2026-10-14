@@ -24,7 +24,8 @@ export {
 	resolveArticleShareOptions,
 	resolveLastUpdatedNoticeOptions,
 } from "./articleConfig";
-export { commentConfig,
+export {
+	commentConfig,
 	type ResolvedCommentOptions,
 	resolveCommentOptions,
 } from "./commentConfig";
@@ -69,6 +70,7 @@ export {
 } from "./siteConfig";
 export { skillsConfig } from "./skillsConfig";
 export { timelineConfig } from "./timelineConfig";
+export { mangaConfig } from "./mangaConfig";
 export { textbooksConfig } from "./textbooksConfig";
 export {
 	type ResolvedUmamiOptions,

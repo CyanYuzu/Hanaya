@@ -40,6 +40,7 @@ export function resolvePageKey(
 	if (pathname === "/moments") return "moments";
 	if (pathname === "/textbooks" || pathname.startsWith("/textbooks/"))
 		return "textbooks";
+	if (pathname === "/manga" || pathname.startsWith("/manga/")) return "manga";
 	if (pathname === "/anime") return "anime";
 	if (pathname === "/compass") return "compass";
 	if (pathname === "/skills") return "skills";

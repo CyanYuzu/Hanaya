@@ -10,6 +10,7 @@ import { momentsConfig } from "@/config/momentsConfig";
 import { projectsConfig } from "@/config/projectsConfig";
 import { skillsConfig } from "@/config/skillsConfig";
 import { timelineConfig } from "@/config/timelineConfig";
+import { mangaConfig } from "@/config/mangaConfig";
 import { textbooksConfig } from "@/config/textbooksConfig";
 import type {
 	NavBarConfig,
@@ -52,6 +53,12 @@ export const LinkPresets: Record<string, NavBarLink> = {
 		url: "/moments/",
 		icon: "material-symbols:auto-awesome-outline-rounded",
 		pageKey: "moments",
+	},
+	Manga: {
+		name: i18n(I18nKey.manga),
+		url: "/manga/",
+		icon: "material-symbols:menu-book-outline-rounded",
+		pageKey: "manga",
 	},
 	Textbooks: {
 		name: i18n(I18nKey.textbooks),
@@ -157,6 +164,7 @@ const defaultNavBarConfig: NavBarConfig = {
 		LinkPresets.Archive,
 		...(friendsConfig.enable ? [LinkPresets.Friends] : []),
 		...(momentsConfig.enable ? [LinkPresets.Moments] : []),
+		...(mangaConfig.enable ? [LinkPresets.Manga] : []),
 		...(textbooksConfig.enable ? [LinkPresets.Textbooks] : []),
 		...(animeConfig.enable ? [LinkPresets.Anime] : []),
 		...(compassConfig.enable ? [LinkPresets.Compass] : []),

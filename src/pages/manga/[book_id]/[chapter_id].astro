@@ -1,0 +1,71 @@
+---
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import MangaReader from "@components/organisms/MangaReader.svelte";
+import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
+import { mangaConfig } from "@/config/mangaConfig";
+import {
+	getMangaBooks,
+	type MangaBook,
+	type MangaEntry,
+} from "@/utils/manga-content";
+import { url } from "@utils/url-utils";
+export async function getStaticPaths() {
+	if (!mangaConfig.enable) return [];
+	return (await getMangaBooks()).flatMap((book) =>
+		book.chapters.map((chapter, index) => ({
+			params: {
+				book_id: book.entry.data.book_id,
+				chapter_id: chapter.data.chapter_id,
+			},
+			props: { book, chapter, index },
+		})),
+	);
+}
+interface Props {
+	book: MangaBook;
+	chapter: MangaEntry;
+	index: number;
+}
+const { book, chapter, index } = Astro.props;
+const data = chapter.data;
+const labels = {
+	cached: i18n(I18nKey.mangaCached),
+	reader: i18n(I18nKey.mangaReader),
+	previous: i18n(I18nKey.mangaPrevious),
+	next: i18n(I18nKey.mangaNext),
+	mode: i18n(I18nKey.mangaMode),
+	single: i18n(I18nKey.mangaSingle),
+	double: i18n(I18nKey.mangaDouble),
+	scroll: i18n(I18nKey.mangaScroll),
+	direction: i18n(I18nKey.mangaDirection),
+	rtl: i18n(I18nKey.mangaRtl),
+	ltr: i18n(I18nKey.mangaLtr),
+	page: i18n(I18nKey.mangaPage),
+	pageAlt: i18n(I18nKey.mangaPageAlt),
+	fitWidth: i18n(I18nKey.mangaFitWidth),
+	fitHeight: i18n(I18nKey.mangaFitHeight),
+	zoomIn: i18n(I18nKey.mangaZoomIn),
+	zoomOut: i18n(I18nKey.mangaZoomOut),
+	loading: i18n(I18nKey.mangaLoading),
+	retry: i18n(I18nKey.mangaRetry),
+	imageError: i18n(I18nKey.mangaImageError),
+	progress: i18n(I18nKey.mangaProgress),
+	chapters: i18n(I18nKey.mangaChapters),
+	previousChapter: i18n(I18nKey.mangaPreviousChapter),
+	nextChapter: i18n(I18nKey.mangaNextChapter),
+	schema: i18n(I18nKey.mangaSchemaError),
+	network: i18n(I18nKey.mangaNetworkError),
+	missing: i18n(I18nKey.mangaMissingError),
+	permission: i18n(I18nKey.mangaPermissionError),
+};
+const link = (n: number) =>
+	book.chapters[n]
+		? url(`/manga/${data.book_id}/${book.chapters[n].data.chapter_id}/`)
+		: "";
+---
+<MainGridLayout title={`${data.title} · ${book.entry.data.title}`} description={data.description||book.entry.data.description} page="manga-reader">
+    <h1 class="manga-reader-title">{data.title}</h1>
+    <MangaReader client:load bookURL={url(`/manga/${data.book_id}/`)} currentURL={data.reader_manifest!} bookId={data.book_id} chapterId={data.chapter_id!} previousChapter={link(index-1)} nextChapter={link(index+1)} labels={labels}/>
+</MainGridLayout>
+<style>.manga-reader-title{font:var(--m3e-type-title-lg);color:var(--mc-on-surface);margin-block-end:var(--m3e-space-3)}</style>

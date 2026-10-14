@@ -1,3 +1,4 @@
+import { mangaSchema } from "../utils/manga-schema";
 import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
@@ -24,6 +25,7 @@ export interface DefineCollectionsOptions {
 		posts?: string;
 		moments?: string;
 		spec?: string;
+		manga?: string;
 		textbook?: string;
 	};
 }
@@ -139,6 +141,15 @@ export function defineCollections(options: DefineCollectionsOptions = {}) {
 		: `${root}/textbook`;
 
 	return {
+		manga: defineCollection({
+			loader: glob({
+				base: options.paths?.manga
+					? normaliseBase(options.paths.manga)
+					: `${root}/manga`,
+				pattern: "**/*.md",
+			}),
+			schema: mangaSchema,
+		}),
 		posts: defineCollection({
 			loader: glob({ base: postsBase, pattern: "**/*.{md,mdx}" }),
 			schema: postSchema,

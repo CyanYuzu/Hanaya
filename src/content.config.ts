@@ -1,3 +1,4 @@
+import { mangaSchema } from "./utils/manga-schema";
 import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
@@ -103,7 +104,13 @@ const textbookCollection = defineCollection({
 	}),
 });
 
+const mangaCollection = defineCollection({
+	loader: glob({ base: "./src/content/manga", pattern: "**/*.md" }),
+	schema: mangaSchema,
+});
+
 export const collections = {
+	manga: mangaCollection,
 	posts: postsCollection,
 	spec: specCollection,
 	moments: momentsCollection,

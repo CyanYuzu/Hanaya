@@ -30,6 +30,12 @@ export const GENERATED_CONFIG_FILE = "src/user/user-config.ts";
 
 /** @type {readonly ConfigDomain[]} */
 export const CONFIG_DOMAINS = Object.freeze([
+	{
+		key: "manga",
+		file: "manga",
+		type: "MangaConfig",
+		module: "@/types/mangaConfig",
+	},
 	{ key: "site", file: "site", type: "SiteConfig", module: "@/types/config" },
 	{
 		key: "permalink",
