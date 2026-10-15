@@ -44,6 +44,41 @@ export function mediaURL(value: unknown, base: string): string {
 		throw new Error("schema");
 	return url.href;
 }
+export function imageURL(
+	value: unknown,
+	base: string,
+	origins: readonly string[] = [],
+): string {
+	try {
+		return mediaURL(value, base);
+	} catch {}
+	if (typeof value !== "string" || value.length > 2048)
+		throw new Error("schema");
+	let decoded: string;
+	try {
+		decoded = decodeURIComponent(value);
+	} catch {
+		throw new Error("schema");
+	}
+	if (
+		decoded.split("/").some((p) => p === ".." || p === ".") ||
+		/[\\\u0000-\u001f]/.test(decoded)
+	)
+		throw new Error("schema");
+	const url = new URL(value, base);
+	if (
+		url.protocol !== "https:" ||
+		url.username ||
+		url.password ||
+		url.search ||
+		url.hash ||
+		!origins.includes(url.origin) ||
+		!decodeURIComponent(url.pathname).includes("/成品图/") ||
+		!/[0-9a-f]{64}\.png$/.test(url.pathname)
+	)
+		throw new Error("schema");
+	return url.href;
+}
 export function parseCurrent(value: unknown, base: string, chapter: string) {
 	const c = object(value, ["chapter_id", "release_id", "manifest"]);
 	if (
@@ -59,6 +94,7 @@ export function parseManifest(
 	base: string,
 	chapter: string,
 	version: string,
+	origins: readonly string[] = [],
 ): PublicManifest {
 	const m = object(value, [
 		"schema_version",
@@ -105,7 +141,7 @@ export function parseManifest(
 		seen.add(p.page_id);
 		return {
 			page_id: p.page_id,
-			url: mediaURL(p.url, base),
+			url: imageURL(p.url, base, origins),
 			width: Number(p.width),
 			height: Number(p.height),
 			sha256: p.sha256,
@@ -119,7 +155,7 @@ export function parseManifest(
 		reading_direction: m.reading_direction,
 		page_count: pages.length,
 		updated_at: m.updated_at,
-		...(m.cover ? { cover: mediaURL(m.cover, base) } : {}),
+		...(m.cover ? { cover: imageURL(m.cover, base, origins) } : {}),
 	};
 }
 export async function boundedJSON(response: Response): Promise<unknown> {

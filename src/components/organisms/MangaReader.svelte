@@ -19,6 +19,7 @@ let {
 	bookURL,
 	previousChapter = "",
 	nextChapter = "",
+	imageOrigins = [],
 }: {
 	currentURL: string;
 	bookId: string;
@@ -27,6 +28,7 @@ let {
 	bookURL: string;
 	previousChapter?: string;
 	nextChapter?: string;
+	imageOrigins?: string[];
 } = $props();
 let manifest: PublicManifest | null = $state(null),
 	error = $state(""),
@@ -150,15 +152,26 @@ async function load() {
 					base,
 					chapterId,
 					current.release_id,
+					imageOrigins,
 				);
 				try {
 					const portable = {
 						...value,
 						pages: value.pages.map((p) => ({
 							...p,
-							url: new URL(p.url).pathname,
+							url:
+								new URL(p.url).origin === new URL(base).origin
+									? new URL(p.url).pathname
+									: p.url,
 						})),
-						...(value.cover ? { cover: new URL(value.cover).pathname } : {}),
+						...(value.cover
+							? {
+									cover:
+										new URL(value.cover).origin === new URL(base).origin
+											? new URL(value.cover).pathname
+											: value.cover,
+								}
+							: {}),
 					};
 					localStorage.setItem(
 						key + ":manifest",
@@ -181,6 +194,7 @@ async function load() {
 					base,
 					chapterId,
 					saved.current.release_id,
+					imageOrigins,
 				);
 				cached = true;
 			}

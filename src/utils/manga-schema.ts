@@ -9,6 +9,27 @@ const publicMedia = z
 			!value.split("/").includes(".."),
 		"Public media URL required",
 	);
+const publicImage = z
+	.string()
+	.max(2048)
+	.refine((value) => {
+		try {
+			const u = new URL(value);
+			const decoded = decodeURIComponent(value);
+			return (
+				u.protocol === "https:" &&
+				!u.username &&
+				!u.password &&
+				!u.search &&
+				!u.hash &&
+				decoded.includes("/成品图/") &&
+				!decoded.split("/").some((p) => p === ".." || p === ".") &&
+				/[0-9a-f]{64}\.png$/.test(u.pathname)
+			);
+		} catch {
+			return false;
+		}
+	}, "Published image URL required");
 export const mangaSchema = z
 	.object({
 		kind: z.enum(["book", "chapter"]),
@@ -17,7 +38,7 @@ export const mangaSchema = z
 		title: z.string().min(1).max(1024),
 		author: z.string().default(""),
 		description: z.string().default(""),
-		cover: z.union([publicMedia, z.literal("")]).default(""),
+		cover: z.union([publicMedia, publicImage, z.literal("")]).default(""),
 		reader_manifest: publicMedia.optional(),
 		chapter_order: z.number().default(0),
 		published: z.coerce.date(),
