@@ -15,6 +15,7 @@ test('R2 finished images require explicit origin and keep absolute URLs for cach
     assert.throws(()=>parseManifest(value,base,'chapter',version));const parsed=parseManifest(value,base,'chapter',version,[origin]);assert.ok(parsed.pages[0].url.startsWith(origin));assert.deepEqual(parseManifest(parsed,base,'chapter',version,[origin]),parsed);
     for(const path of ['原图','去字图'])assert.throws(()=>parseManifest({...value,pages:[{...value.pages[0],url:origin+'/book/'+encodeURIComponent(path)+'/image.png'}],page_count:1},base,'chapter',version,[origin]));
     assert.throws(()=>parseCurrent({chapter_id:'chapter',release_id:version,manifest:origin+'/book/'+encodeURIComponent('成品图')+'/manifest.json'},base,'chapter'));
+    for(const path of ['%00','%1f','%5c','%2e%2e'])assert.throws(()=>parseManifest({...value,pages:[{...value.pages[0],url:origin+'/book/'+path+'/'+encodeURIComponent('成品图')+'/'+value.pages[0].sha256+'.png'}],page_count:1},base,'chapter',version,[origin]));
 });
 test('long chapter retains at most five nearby images',()=>{const near=Array.from({length:10000},(_,i)=>i);assert.deepEqual(viewportPages(500,10000,near),[500,499,501,498,502]);assert.deepEqual(viewportPages(0,2,near),[0,1]);});
 test('stream limit rejects oversized public JSON before accumulating it',async()=>{await assert.rejects(boundedJSON(new Response(' '.repeat(4*1024*1024+1),{headers:{'Content-Type':'application/json'}})),/schema/);await assert.rejects(boundedJSON(new Response('{}',{headers:{'Content-Type':'text/html'}})),/schema/);});

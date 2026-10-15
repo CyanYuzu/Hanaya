@@ -62,7 +62,8 @@ export function imageURL(
 	}
 	if (
 		decoded.split("/").some((p) => p === ".." || p === ".") ||
-		/[\\\u0000-\u001f]/.test(decoded)
+		decoded.includes("\\") ||
+		[...decoded].some((char) => char.charCodeAt(0) < 32)
 	)
 		throw new Error("schema");
 	const url = new URL(value, base);
