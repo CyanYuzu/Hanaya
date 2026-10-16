@@ -1,22 +1,107 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import {boundedJSON,parseCurrent,parseManifest,spreadIndices,viewportPages} from '../src/utils/manga-reader.ts';
-const base='https://test.invalid/manga-media/manga/book/chapter/current.json',version='20261013T070102123Z';
-const fixture=()=>({schema_version:1,chapter_id:'chapter',release_id:version,page_count:2,reading_direction:'rtl',updated_at:'2026-10-13T07:01:02Z',pages:[0,1].map(i=>({page_id:'page-'+i,url:'/manga-media/objects/aa/'+('a'.repeat(64))+'.png',width:600,height:800,sha256:'a'.repeat(64)}))});
-test('published manifest rejects private project fields and untrusted URLs',()=>{
-    const value=fixture();assert.equal(parseManifest(value,base,'chapter',version).pages.length,2);
-    for(const patch of [{ocr:'private text'},{pages:[{...value.pages[0],url:'/manga-api/api/v1/assets/private/file'}]},{pages:[{...value.pages[0],url:'https://other.invalid/manga-media/objects/page.png'}]},{pages:[value.pages[0],value.pages[0]]}])assert.throws(()=>parseManifest({...value,...patch},base,'chapter',version));
-    assert.throws(()=>parseManifest({...value,release_id:'arbitrary'},base,'chapter','arbitrary'));
-    assert.equal(parseCurrent({chapter_id:'chapter',release_id:version,manifest:'/manga-media/manga/book/chapter/releases/'+version+'/manifest.json'},base,'chapter').release_id,version);
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+	createReaderChapter,
+	isMangaImageURL,
+	spreadIndices,
+	viewportPages,
+} from "../src/utils/manga-reader.ts";
+import { mangaSchema } from "../src/utils/manga-schema.ts";
+
+test("one Markdown work validates chapters, order, directions and duplicate IDs", () => {
+	const chapter = {
+		id: "first",
+		title: "First",
+		pages: ["https://images.example.org/1.jpg"],
+	};
+	const work = {
+		book_id: "my-work",
+		title: "Work",
+		published: "2026-10-16",
+		chapters: [chapter, { ...chapter, id: "second", reading_direction: "ltr" }],
+	};
+	const parsed = mangaSchema.parse(work);
+	assert.deepEqual(
+		parsed.chapters.map((c) => c.id),
+		["first", "second"],
+	);
+	assert.equal(parsed.reading_direction, "rtl");
+	assert.equal(parsed.chapters[1].reading_direction, "ltr");
+	assert.equal(
+		mangaSchema.safeParse({ ...work, chapters: [chapter, chapter] }).success,
+		false,
+	);
+	assert.equal(
+		mangaSchema.safeParse({ ...work, chapters: [{ ...chapter, pages: [] }] })
+			.success,
+		false,
+	);
+	assert.equal(
+		mangaSchema.safeParse({
+			...work,
+			chapters: [
+				{ ...chapter, pages: [{ src: chapter.pages[0], width: 600 }] },
+			],
+		}).success,
+		false,
+	);
+	assert.equal(
+		mangaSchema.safeParse({ ...work, book_id: "../work" }).success,
+		false,
+	);
 });
-test('cover and last odd page do not duplicate a facing page',()=>{assert.deepEqual(spreadIndices(0,4),[0]);assert.deepEqual(spreadIndices(1,4),[1,2]);assert.deepEqual(spreadIndices(3,4),[3]);});
-test('R2 finished images require explicit origin and keep absolute URLs for cached reading',()=>{
-    const value=fixture(),origin='https://roaster.cyanyuzu.work';value.pages=value.pages.map(p=>({...p,url:origin+'/book/'+encodeURIComponent('成品图')+'/chapter/objects/'+p.sha256+'.png'}));
-    assert.throws(()=>parseManifest(value,base,'chapter',version));const parsed=parseManifest(value,base,'chapter',version,[origin]);assert.ok(parsed.pages[0].url.startsWith(origin));assert.deepEqual(parseManifest(parsed,base,'chapter',version,[origin]),parsed);
-    for(const path of ['原图','去字图'])assert.throws(()=>parseManifest({...value,pages:[{...value.pages[0],url:origin+'/book/'+encodeURIComponent(path)+'/image.png'}],page_count:1},base,'chapter',version,[origin]));
-    assert.throws(()=>parseCurrent({chapter_id:'chapter',release_id:version,manifest:origin+'/book/'+encodeURIComponent('成品图')+'/manifest.json'},base,'chapter'));
-    for(const path of ['%00','%1f','%5c','%2e%2e'])assert.throws(()=>parseManifest({...value,pages:[{...value.pages[0],url:origin+'/book/'+path+'/'+encodeURIComponent('成品图')+'/'+value.pages[0].sha256+'.png'}],page_count:1},base,'chapter',version,[origin]));
+
+test("authored HTTPS images allow custom buckets, unicode names and CDN parameters", () => {
+	for (const url of [
+		"https://images.example.org/work/001.jpg",
+		"https://cdn.example.org/作品/第1话/01.webp?width=1600&v=2",
+	])
+		assert.equal(isMangaImageURL(url), true);
+	const result = createReaderChapter(
+		[
+			"https://images.example.org/1.jpg",
+			{ src: "https://other.example.org/2.webp", width: 800, height: 1200 },
+		],
+		"ltr",
+	);
+	assert.equal(result.pages[0].estimated, true);
+	assert.equal(result.pages[1].estimated, false);
+	assert.equal(result.pages[1].width, 800);
+	assert.equal(result.reading_direction, "ltr");
 });
-test('long chapter retains at most five nearby images',()=>{const near=Array.from({length:10000},(_,i)=>i);assert.deepEqual(viewportPages(500,10000,near),[500,499,501,498,502]);assert.deepEqual(viewportPages(0,2,near),[0,1]);});
-test('stream limit rejects oversized public JSON before accumulating it',async()=>{await assert.rejects(boundedJSON(new Response(' '.repeat(4*1024*1024+1),{headers:{'Content-Type':'application/json'}})),/schema/);await assert.rejects(boundedJSON(new Response('{}',{headers:{'Content-Type':'text/html'}})),/schema/);});
-test('long valid chapters fit the bounded transport contract',async()=>{const value=fixture();value.pages=Array.from({length:3000},(_,i)=>({...value.pages[0],page_id:'page-'+i}));value.page_count=value.pages.length;const body=JSON.stringify(value);assert.ok(Buffer.byteLength(body)>512*1024);const result=await boundedJSON(new Response(body,{headers:{'Content-Type':'application/json'}}));assert.equal(parseManifest(result,base,'chapter',version).pages.length,3000);});
+test("unsafe links and invalid dimensions fail before rendering", () => {
+	for (const url of [
+		"javascript:alert(1)",
+		"data:image/png,x",
+		"//example.org/1.jpg",
+		"http://example.org/1.jpg",
+		"https://user:password@example.org/1.jpg",
+		"https://example.org/1.jpg#fragment",
+		"https://example.org/%00.jpg",
+		"https://example.org/%2e%2e/1.jpg",
+		"https://example.org/a%5cb.jpg",
+		" https://example.org/1.jpg",
+	])
+		assert.equal(isMangaImageURL(url), false, url);
+	for (const page of [
+		{ src: "https://x.example/1.jpg", width: 0, height: 1 },
+		{ src: "https://x.example/1.jpg", width: 1 },
+		{ src: "https://x.example/1.jpg", width: 1, height: 65537 },
+	])
+		assert.throws(() => createReaderChapter([page], "rtl"));
+	assert.throws(() => createReaderChapter([], "rtl"));
+	assert.throws(() =>
+		createReaderChapter(Array(10001).fill("https://x.example/a.jpg"), "rtl"),
+	);
+});
+test("cover and final odd page do not duplicate facing pages", () => {
+	assert.deepEqual(spreadIndices(0, 4), [0]);
+	assert.deepEqual(spreadIndices(1, 4), [1, 2]);
+	assert.deepEqual(spreadIndices(3, 4), [3]);
+});
+test("long chapters retain at most five nearby images including after a large jump", () => {
+	const near = Array.from({ length: 10000 }, (_, i) => i);
+	assert.deepEqual(viewportPages(500, 10000, near), [500, 499, 501, 498, 502]);
+	assert.deepEqual(viewportPages(0, 2, near), [0, 1]);
+	assert.deepEqual(viewportPages(9999, 10000, near), [9999, 9998, 9997]);
+});

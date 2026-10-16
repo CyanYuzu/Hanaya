@@ -32,7 +32,7 @@ const stylesheetAssets = await getMarkdownStylesheetAssets(
         {data.cover&&<img src={data.cover} alt={data.title} width="300" height="400" loading="lazy" decoding="async"/>}
         <Markdown class="manga-introduction"><Content/></Markdown>
         <h2>{i18n(I18nKey.mangaChapters)}</h2>
-        <ol>{book.chapters.map(chapter=><li><a class="m3-state-layer" href={url(`/manga/${data.book_id}/${chapter.data.chapter_id}/`)}>{chapter.data.title}</a><time datetime={chapter.data.published.toISOString()}>{chapter.data.published.toISOString().slice(0,10)}</time></li>)}</ol>
+        <ol>{book.chapters.map(chapter=><li><a data-manga-reader-link class="m3-state-layer" href={url(`/manga/${data.book_id}/${chapter.data.chapter_id}/`)}>{chapter.data.title}</a><time datetime={chapter.data.published.toISOString()}>{chapter.data.published.toISOString().slice(0,10)}</time></li>)}</ol>
     </article></Card>
 </MainGridLayout>
 <style>

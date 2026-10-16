@@ -484,7 +484,7 @@ async function createBundledIntegrations(
 		...(oddmiscIntegration ? [oddmiscIntegration] : []),
 		swup({
 			theme: false,
-			ignore: ['a[href="#"]'],
+			ignore: ['a[href="#"], a[data-manga-reader-link], [data-manga-reader] a'],
 			animationClass: "transition-swup-",
 			containers: ["main", "#toc"],
 			smoothScrolling: true,

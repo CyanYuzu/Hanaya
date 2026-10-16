@@ -1,5 +1,5 @@
 ---
-import MainGridLayout from "@layouts/MainGridLayout.astro";
+import MangaReaderLayout from "@layouts/MangaReaderLayout.astro";
 import MangaReader from "@components/organisms/MangaReader.svelte";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
@@ -7,7 +7,7 @@ import { mangaConfig } from "@/config/mangaConfig";
 import {
 	getMangaBooks,
 	type MangaBook,
-	type MangaEntry,
+	type MangaChapter,
 } from "@/utils/manga-content";
 import { url } from "@utils/url-utils";
 export async function getStaticPaths() {
@@ -24,13 +24,15 @@ export async function getStaticPaths() {
 }
 interface Props {
 	book: MangaBook;
-	chapter: MangaEntry;
+	chapter: MangaChapter;
 	index: number;
 }
 const { book, chapter, index } = Astro.props;
 const data = chapter.data;
 const labels = {
-	cached: i18n(I18nKey.mangaCached),
+	settings: i18n(I18nKey.mangaSettings),
+	fullscreen: i18n(I18nKey.mangaFullscreen),
+	exitFullscreen: i18n(I18nKey.mangaExitFullscreen),
 	reader: i18n(I18nKey.mangaReader),
 	previous: i18n(I18nKey.mangaPrevious),
 	next: i18n(I18nKey.mangaNext),
@@ -54,18 +56,12 @@ const labels = {
 	chapters: i18n(I18nKey.mangaChapters),
 	previousChapter: i18n(I18nKey.mangaPreviousChapter),
 	nextChapter: i18n(I18nKey.mangaNextChapter),
-	schema: i18n(I18nKey.mangaSchemaError),
-	network: i18n(I18nKey.mangaNetworkError),
-	missing: i18n(I18nKey.mangaMissingError),
-	permission: i18n(I18nKey.mangaPermissionError),
 };
 const link = (n: number) =>
 	book.chapters[n]
 		? url(`/manga/${data.book_id}/${book.chapters[n].data.chapter_id}/`)
 		: "";
 ---
-<MainGridLayout title={`${data.title} · ${book.entry.data.title}`} description={data.description||book.entry.data.description} page="manga-reader">
-    <h1 class="manga-reader-title">{data.title}</h1>
-    <MangaReader client:load imageOrigins={mangaConfig.imageOrigins??[]} bookURL={url(`/manga/${data.book_id}/`)} currentURL={data.reader_manifest!} bookId={data.book_id} chapterId={data.chapter_id!} previousChapter={link(index-1)} nextChapter={link(index+1)} labels={labels}/>
-</MainGridLayout>
-<style>.manga-reader-title{font:var(--m3e-type-title-lg);color:var(--mc-on-surface);margin-block-end:var(--m3e-space-3)}</style>
+<MangaReaderLayout title={`${data.title} · ${book.entry.data.title}`} description={data.description||book.entry.data.description}>
+    <MangaReader client:load title={`${book.entry.data.title} · ${data.title}`} pages={data.pages} readingDirection={data.reading_direction} bookURL={url(`/manga/${data.book_id}/`)} bookId={data.book_id} chapterId={data.chapter_id} previousChapter={link(index-1)} nextChapter={link(index+1)} labels={labels}/>
+</MangaReaderLayout>

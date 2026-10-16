@@ -1,63 +1,59 @@
 import { z } from "astro/zod";
+import { isMangaImageURL } from "./manga-reader.ts";
 
 const id = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/);
-const publicMedia = z
+const image = z
 	.string()
-	.max(2048)
+	.max(4096)
 	.refine(
-		(value) =>
-			/^(?:https:\/\/[^/]+)?\/manga-media\/[A-Za-z0-9_./-]+$/.test(value) &&
-			!value.split("/").includes(".."),
-		"Public media URL required",
+		isMangaImageURL,
+		"An HTTPS image URL without credentials is required",
 	);
-const publicImage = z
-	.string()
-	.max(2048)
-	.refine((value) => {
-		try {
-			const u = new URL(value);
-			const decoded = decodeURIComponent(value);
-			return (
-				u.protocol === "https:" &&
-				!u.username &&
-				!u.password &&
-				!u.search &&
-				!u.hash &&
-				decoded.includes("/成品图/") &&
-				!decoded.split("/").some((p) => p === ".." || p === ".") &&
-				/[0-9a-f]{64}\.png$/.test(u.pathname)
-			);
-		} catch {
-			return false;
-		}
-	}, "Published image URL required");
+const dimension = z.number().int().min(1).max(65536);
+const page = z.union([
+	image,
+	z
+		.object({
+			src: image,
+			width: dimension.optional(),
+			height: dimension.optional(),
+		})
+		.refine(
+			(p) => Boolean(p.width) === Boolean(p.height),
+			"Supply both width and height",
+		),
+]);
+const chapter = z.object({
+	id,
+	title: z.string().min(1).max(1024),
+	description: z.string().default(""),
+	published: z.coerce.date().optional(),
+	reading_direction: z.enum(["rtl", "ltr"]).optional(),
+	pages: z.array(page).min(1).max(10000),
+});
+/** Each document owns a work and all its chapters, in the author's order. */
 export const mangaSchema = z
 	.object({
-		kind: z.enum(["book", "chapter"]),
 		book_id: id,
-		chapter_id: id.optional(),
 		title: z.string().min(1).max(1024),
 		author: z.string().default(""),
 		description: z.string().default(""),
-		cover: z.union([publicMedia, publicImage, z.literal("")]).default(""),
-		reader_manifest: publicMedia.optional(),
-		chapter_order: z.number().default(0),
+		cover: z.union([image, z.literal("")]).default(""),
 		published: z.coerce.date(),
 		updated: z.coerce.date().optional(),
 		draft: z.boolean().default(false),
+		reading_direction: z.enum(["rtl", "ltr"]).default("rtl"),
+		chapters: z.array(chapter).default([]),
 	})
-	.superRefine((value, ctx) => {
-		if (
-			value.kind === "chapter" &&
-			(!value.chapter_id || !value.reader_manifest?.endsWith("/current.json"))
-		)
-			ctx.addIssue({
-				code: "custom",
-				message: "Chapter ID and public current.json required",
-			});
-		if (value.kind === "book" && (value.chapter_id || value.reader_manifest))
-			ctx.addIssue({
-				code: "custom",
-				message: "Book must not carry chapter fields",
-			});
+	.superRefine((work, ctx) => {
+		const seen = new Set<string>();
+		work.chapters.forEach((c, i) => {
+			if (seen.has(c.id))
+				ctx.addIssue({
+					code: "custom",
+					path: ["chapters", i, "id"],
+					message: "Duplicate chapter ID",
+				});
+			seen.add(c.id);
+		});
 	});

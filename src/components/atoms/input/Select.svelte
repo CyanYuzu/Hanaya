@@ -13,8 +13,8 @@ import Icon from "@iconify/svelte";
  * - 菜单 fixed 定位锚定触发按钮，滚动/缩放自动重定位，宽度 = 按钮宽（最小 210px）；
  * - 支持 required（必填星号）、disabled、helper/error 提示。
  */
-let selectId = 0;
-const menuId = `m3-select-menu-${++selectId}`;
+// Stable per-instance ID across SSR and hydration, including sibling selects.
+const menuId = $props.id();
 
 let {
 	value = $bindable(""),

@@ -1,38 +1,47 @@
 import { getCollection, type CollectionEntry } from "astro:content";
+import type { MangaSourcePage } from "./manga-reader";
 export type MangaEntry = CollectionEntry<"manga">;
+export interface MangaChapter {
+	data: {
+		book_id: string;
+		chapter_id: string;
+		title: string;
+		description: string;
+		published: Date;
+		reading_direction: "rtl" | "ltr";
+		pages: MangaSourcePage[];
+	};
+}
 export interface MangaBook {
 	entry: MangaEntry;
-	chapters: MangaEntry[];
+	chapters: MangaChapter[];
 }
 export async function getMangaBooks(): Promise<MangaBook[]> {
 	const entries = (await getCollection("manga")).filter((e) => !e.data.draft);
-	const books = new Map<string, MangaBook>();
-	const chapters = new Set<string>();
-	for (const entry of entries) {
-		const d = entry.data;
-		if (d.kind !== "book") continue;
-		if (books.has(d.book_id))
-			throw new Error(`Duplicate manga book: ${d.book_id}`);
-		books.set(d.book_id, { entry, chapters: [] });
-	}
-	for (const entry of entries) {
-		const d = entry.data;
-		if (d.kind !== "chapter") continue;
-		const key = `${d.book_id}/${d.chapter_id}`;
-		if (chapters.has(key)) throw new Error(`Duplicate manga chapter: ${key}`);
-		chapters.add(key);
-		const book = books.get(d.book_id);
-		if (!book) throw new Error(`Manga chapter has no published book: ${key}`);
-		book.chapters.push(entry);
-	}
-	for (const book of books.values())
-		book.chapters.sort(
+	const seen = new Set<string>();
+	return entries
+		.map((entry) => {
+			const work = entry.data;
+			if (seen.has(work.book_id))
+				throw new Error(`Duplicate manga book: ${work.book_id}`);
+			seen.add(work.book_id);
+			return {
+				entry,
+				chapters: work.chapters.map((c) => ({
+					data: {
+						book_id: work.book_id,
+						chapter_id: c.id,
+						title: c.title,
+						description: c.description,
+						published: c.published ?? work.published,
+						reading_direction: c.reading_direction ?? work.reading_direction,
+						pages: c.pages,
+					},
+				})),
+			};
+		})
+		.sort(
 			(a, b) =>
-				a.data.chapter_order - b.data.chapter_order ||
-				a.data.chapter_id!.localeCompare(b.data.chapter_id!),
+				b.entry.data.published.getTime() - a.entry.data.published.getTime(),
 		);
-	return Array.from(books.values()).sort(
-		(a, b) =>
-			b.entry.data.published.getTime() - a.entry.data.published.getTime(),
-	);
 }

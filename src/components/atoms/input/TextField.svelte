@@ -23,6 +23,7 @@ let {
 	onfocus = () => {},
 	oninput = () => {},
 	onblur = () => {},
+	onkeydown,
 	class: className = "",
 }: {
 	type?: string;
@@ -41,6 +42,7 @@ let {
 	onfocus?: () => void;
 	oninput?: () => void;
 	onblur?: () => void;
+	onkeydown?: (event: KeyboardEvent) => void;
 	class?: string;
 } = $props();
 
@@ -74,6 +76,7 @@ let focused = $state(false);
                 onblur();
             }}
             {oninput}
+            {onkeydown}
         />
         {#if label && !hideLabel}
             <span

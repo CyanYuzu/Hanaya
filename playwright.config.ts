@@ -18,7 +18,8 @@ export default defineConfig({
 	reporter: [["list"]],
 	use: {
 		baseURL: "http://localhost:4321",
-		channel: "chrome",
+		// Keep Chrome as default; local machines without Chrome may use installed Edge.
+		channel: process.env.PLAYWRIGHT_CHANNEL || "chrome",
 		viewport: { width: 1280, height: 900 },
 		trace: "retain-on-failure",
 	},

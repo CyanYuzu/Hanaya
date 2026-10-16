@@ -1,53 +1,54 @@
 <script lang="ts">
-import { onMount, tick } from "svelte";
+import { onMount, tick, untrack } from "svelte";
 import Button from "@components/atoms/action/Button.svelte";
 import Select from "@components/atoms/input/Select.svelte";
 import TextField from "@components/atoms/input/TextField.svelte";
 import {
-	boundedJSON,
-	parseCurrent,
-	parseManifest,
+	createReaderChapter,
 	spreadIndices,
 	viewportPages,
-	type PublicManifest,
+	type ReaderChapter,
+	type MangaSourcePage,
 } from "@/utils/manga-reader";
 let {
-	currentURL,
+	pages,
+	readingDirection,
+	title,
 	bookId,
 	chapterId,
 	labels,
 	bookURL,
 	previousChapter = "",
 	nextChapter = "",
-	imageOrigins = [],
 }: {
-	currentURL: string;
+	pages: MangaSourcePage[];
+	readingDirection: "rtl" | "ltr";
+	title: string;
 	bookId: string;
 	chapterId: string;
 	labels: Record<string, string>;
 	bookURL: string;
 	previousChapter?: string;
 	nextChapter?: string;
-	imageOrigins?: string[];
 } = $props();
-let manifest: PublicManifest | null = $state(null),
-	error = $state(""),
+let manifest: ReaderChapter = $state(
+		untrack(() => createReaderChapter(pages, readingDirection)),
+	),
 	loading = $state(true),
 	index = $state(0),
 	mode = $state("single"),
 	direction = $state("rtl"),
-	fit = $state("width"),
+	fit = $state("height"),
 	zoom = $state(1),
 	hidden = $state(false),
 	visiblePages: Set<number> = $state(new Set()),
 	failed: Set<number> = $state(new Set());
 let container: HTMLDivElement;
 let observer: IntersectionObserver | undefined;
-let controller: AbortController | undefined;
-let generation = 0;
 let prefetch: HTMLImageElement | undefined;
-let pending: Promise<void> | undefined;
-let cached = $state(false),
+let settings = $state(false),
+	fullscreen = $state(false),
+	canFullscreen = $state(false),
 	frames = new Map<number, HTMLElement>(),
 	near = new Set<number>(),
 	scrollFrame = 0,
@@ -57,7 +58,7 @@ let jumpText = $state("1"),
 $effect(() => {
 	if (!jumpFocused) jumpText = String(index + 1);
 });
-const key = `cyanroaster:progress:${bookId}/${chapterId}`;
+const key = untrack(() => `shirone:manga:progress:${bookId}/${chapterId}`);
 let shown = $derived(
 	manifest
 		? mode === "double"
@@ -106,134 +107,51 @@ function preload() {
 	if (next < manifest.page_count) {
 		if (prefetch) prefetch.src = "";
 		prefetch = new Image();
+		prefetch.referrerPolicy = "no-referrer";
 		prefetch.src = manifest.pages[next].url;
 	}
 }
-function classify(e: unknown) {
-	const code = e instanceof Error ? e.message : "network";
-	return labels[code] || labels.network;
-}
-async function load() {
-	if (pending) return pending;
-	const mine = ++generation;
-	controller?.abort();
-	controller = new AbortController();
-	loading = true;
-	error = "";
-	cached = false;
-	pending = (async () => {
-		try {
-			const base = new URL(currentURL, location.href).href;
-			const signal = AbortSignal.any([
-				controller!.signal,
-				AbortSignal.timeout(8000),
-			]);
-			let value: PublicManifest;
-			try {
-				const current = parseCurrent(
-					await boundedJSON(
-						await fetch(base, {
-							signal,
-							cache: "no-cache",
-							credentials: "omit",
-						}),
-					),
-					base,
-					chapterId,
-				);
-				value = parseManifest(
-					await boundedJSON(
-						await fetch(current.manifest, {
-							signal,
-							cache: "force-cache",
-							credentials: "omit",
-						}),
-					),
-					base,
-					chapterId,
-					current.release_id,
-					imageOrigins,
-				);
-				try {
-					const portable = {
-						...value,
-						pages: value.pages.map((p) => ({
-							...p,
-							url:
-								new URL(p.url).origin === new URL(base).origin
-									? new URL(p.url).pathname
-									: p.url,
-						})),
-						...(value.cover
-							? {
-									cover:
-										new URL(value.cover).origin === new URL(base).origin
-											? new URL(value.cover).pathname
-											: value.cover,
-								}
-							: {}),
-					};
-					localStorage.setItem(
-						key + ":manifest",
-						JSON.stringify({ base, current, manifest: portable }),
-					);
-				} catch {}
-			} catch (e) {
-				if (controller?.signal.aborted) throw e;
-				const code = e instanceof Error ? e.message : "network";
-				if (["schema", "permission", "missing"].includes(code)) throw e;
-				let text: string | null = null;
-				try {
-					text = localStorage.getItem(key + ":manifest");
-				} catch {}
-				if (!text || text.length > 512 * 1024) throw e;
-				const saved = JSON.parse(text);
-				if (saved.base !== base) throw e;
-				value = parseManifest(
-					saved.manifest,
-					base,
-					chapterId,
-					saved.current.release_id,
-					imageOrigins,
-				);
-				cached = true;
-			}
-			if (mine !== generation) return;
-			manifest = value;
-			direction = value.reading_direction;
-			try {
-				const stored = JSON.parse(localStorage.getItem(key) || "null");
-				if (stored) {
-					const found = value.pages.findIndex(
-						(p) => p.page_id === stored.page_id,
-					);
-					index =
-						found >= 0
-							? found
-							: Math.min(
-									value.page_count - 1,
-									Math.max(0, Number(stored.index) || 0),
-								);
-					if (["single", "double", "scroll"].includes(stored.mode))
-						mode = stored.mode;
-					if (["rtl", "ltr"].includes(stored.direction))
-						direction = stored.direction;
-					if (["width", "height"].includes(stored.fit)) fit = stored.fit;
-				}
-			} catch {}
-			preload();
-		} catch (e) {
-			if (mine === generation && !controller?.signal.aborted)
-				error = classify(e);
-		} finally {
-			if (mine === generation) {
-				loading = false;
-				pending = undefined;
-				await scrollToPage();
-			}
+function load() {
+	direction = readingDirection;
+	try {
+		const stored = JSON.parse(localStorage.getItem(key) || "null");
+		if (stored) {
+			index = Math.min(
+				manifest.page_count - 1,
+				Math.max(0, Math.floor(Number(stored.index) || 0)),
+			);
+			if (["single", "double", "scroll"].includes(stored.mode))
+				mode = stored.mode;
+			if (["rtl", "ltr"].includes(stored.direction))
+				direction = stored.direction;
+			if (["width", "height"].includes(stored.fit)) fit = stored.fit;
 		}
-	})();
-	return pending;
+	} catch {
+		/* Storage is optional. */
+	}
+	loading = false;
+	preload();
+	scrollToPage();
+}
+async function toggleFullscreen() {
+	try {
+		if (document.fullscreenElement) await document.exitFullscreen();
+		else await document.documentElement.requestFullscreen();
+	} catch {
+		/* Browser policy may deny fullscreen; viewport reading continues. */
+	}
+}
+function fullscreenChanged() {
+	fullscreen = Boolean(document.fullscreenElement);
+}
+function imageLoaded(event: Event, i: number) {
+	const img = event.currentTarget as HTMLImageElement;
+	if (manifest.pages[i].estimated && img.naturalWidth && img.naturalHeight) {
+		manifest.pages[i].width = img.naturalWidth;
+		manifest.pages[i].height = img.naturalHeight;
+		manifest.pages[i].estimated = false;
+		queueViewport();
+	}
 }
 function updateViewport() {
 	scrollFrame = 0;
@@ -242,8 +160,9 @@ function updateViewport() {
 		distance = Infinity;
 	for (const [i, node] of frames) {
 		const rect = node.getBoundingClientRect();
-		if (rect.bottom > 0 && rect.top < innerHeight) {
-			const d = Math.abs(rect.top);
+		const bounds = container.getBoundingClientRect();
+		if (rect.bottom > bounds.top && rect.top < bounds.bottom) {
+			const d = Math.abs(rect.top - bounds.top);
 			if (d < distance) {
 				distance = d;
 				candidate = i;
@@ -270,7 +189,7 @@ function watch(node: HTMLElement, pageIndex: number) {
 			}
 			queueViewport();
 		},
-		{ rootMargin: "500px 0px" },
+		{ root: container, rootMargin: "500px 0px" },
 	);
 	node.dataset.pageIndex = String(pageIndex);
 	observer.observe(node);
@@ -296,7 +215,10 @@ function keyboard(e: KeyboardEvent) {
 		e.altKey
 	)
 		return;
-	if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+	if (e.key === "Escape") {
+		hidden = false;
+		settings = false;
+	} else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
 		e.preventDefault();
 		step((e.key === "ArrowLeft") === (direction === "rtl") ? 1 : -1);
 	} else if (e.key === "PageDown") {
@@ -374,6 +296,8 @@ function up(e: PointerEvent) {
 	}
 }
 onMount(() => {
+	canFullscreen = Boolean(document.fullscreenEnabled);
+	document.addEventListener("fullscreenchange", fullscreenChanged);
 	load();
 	document.addEventListener("keydown", keyboard);
 	window.addEventListener("scroll", queueViewport, { passive: true });
@@ -382,8 +306,7 @@ onMount(() => {
 	const cleanup = () => {
 		if (disposed) return;
 		disposed = true;
-		++generation;
-		controller?.abort();
+		document.removeEventListener("fullscreenchange", fullscreenChanged);
 		observer?.disconnect();
 		cancelAnimationFrame(scrollFrame);
 		frames.clear();
@@ -400,63 +323,79 @@ onMount(() => {
 });
 </script>
 
-<section class="manga-reader" aria-label={labels.reader}>
-    <div class:reader-hidden={hidden} class="reader-toolbar">
-        <Button label={labels.previous} ariaLabel={labels.previous} variant="tonal" size="medium" disabled={!manifest||index===0} onclick={()=>step(-1)}/>
+<section class="manga-reader" data-manga-reader aria-label={labels.reader}>
+    <header class:reader-hidden={hidden} inert={hidden}>
+        <Button href={bookURL} label={labels.chapters} variant="tonal" size="small"/>
+        <h1>{title}</h1>
+        <button type="button" class="reader-action m3-state-layer" aria-expanded={settings} aria-controls="manga-reader-settings" onclick={()=>settings=!settings}>{labels.settings}</button>
+        {#if canFullscreen}<Button label={fullscreen?labels.exitFullscreen:labels.fullscreen} variant="text" onclick={toggleFullscreen}/>{/if}
+    </header>
+    <div id="manga-reader-settings" class="reader-settings" hidden={!settings||hidden} inert={!settings||hidden}>
         <Select bind:value={mode} label={labels.mode} items={[{value:"single",label:labels.single},{value:"double",label:labels.double},{value:"scroll",label:labels.scroll}]} onchange={()=>{remember();preload();scrollToPage();}}/>
         <Select bind:value={direction} label={labels.direction} items={[{value:"rtl",label:labels.rtl},{value:"ltr",label:labels.ltr}]} onchange={remember}/>
-        <Button label={labels.next} ariaLabel={labels.next} variant="tonal" size="medium" disabled={!manifest||index>=manifest.page_count-1} onclick={()=>step(1)}/>
-        <div class="reader-jump"><TextField type="number" label={labels.page} bind:value={jumpText} onfocus={()=>jumpFocused=true} onblur={()=>{jumpFocused=false;select((Number(jumpText)||1)-1);}}/><span>/ {manifest?.page_count||0}</span></div>
-        <Button label={labels.fitWidth} variant="text" size="medium" onclick={()=>{fit="width";zoom=1;remember();}}/>
-        <Button label={labels.fitHeight} variant="text" size="medium" onclick={()=>{fit="height";zoom=1;remember();}}/>
-        <Button label={labels.zoomIn} ariaLabel={labels.zoomIn} variant="text" size="medium" onclick={()=>zoom=Math.min(4,zoom+.2)}/>
-        <Button label={labels.zoomOut} ariaLabel={labels.zoomOut} variant="text" size="medium" onclick={()=>zoom=Math.max(.5,zoom-.2)}/>
+        <Button label={labels.fitWidth} variant={fit==="width"?"tonal":"text"} onclick={()=>{fit="width";zoom=1;remember();}}/>
+        <Button label={labels.fitHeight} variant={fit==="height"?"tonal":"text"} onclick={()=>{fit="height";zoom=1;remember();}}/>
+        <Button label={labels.zoomOut} variant="text" onclick={()=>zoom=Math.max(.5,zoom-.2)}/>
+        <Button label={labels.zoomIn} variant="text" onclick={()=>zoom=Math.min(4,zoom+.2)}/>
     </div>
-    {#if loading}<div class="reader-state" role="status">{labels.loading}</div>
-    {:else if error}<div class="reader-state" role="alert">{error}<Button label={labels.retry} onclick={load}/></div>
-    {:else if manifest}
-        {#if cached}<p class="reader-cache-notice" role="status">{labels.cached}</p>{/if}
-        <div class="reader-canvas" role="region" aria-label={labels.pageAlt.replace("{page}",String(index+1))} tabindex="0" class:continuous={mode==="scroll"} class:fit-height={fit==="height"} bind:this={container} style={`--reader-zoom:${zoom}`} onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={e=>{pointers.delete(e.pointerId);start=undefined;}}>
+    {#if loading}
+        <div class="reader-state" role="status">{labels.loading}</div>
+    {:else}
+        <div class="reader-canvas" class:continuous={mode==="scroll"} class:fit-height={fit==="height"} role="region" aria-label={labels.reader} tabindex="0" bind:this={container} style={`--reader-zoom:${zoom}`} onscroll={queueViewport} onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={(e)=>{pointers.delete(e.pointerId);start=undefined;}}>
             {#if mode==="scroll"}
-                {#each manifest.pages as p,i (p.page_id)}
-                    <div class="reader-frame" style={`aspect-ratio:${p.width}/${p.height}`} use:watch={i}>
+                {#each manifest.pages as page,i (page.page_id)}
+                    <div class="reader-frame" style={`aspect-ratio:${page.width}/${page.height}`} use:watch={i}>
                         {#if failed.has(i)}<div class="reader-state" role="alert">{labels.imageError}<Button label={labels.retry} onclick={()=>retry(i)}/></div>
-                        {:else if visiblePages.has(i)}<img src={p.url} alt={labels.pageAlt.replace("{page}",String(i+1))} width={p.width} height={p.height} loading="lazy" decoding="async" onerror={()=>imageFailed(i)}/>{/if}
+                        {:else if visiblePages.has(i)}<img src={page.url} alt={labels.pageAlt.replace("{page}",String(i+1))} width={page.width} height={page.height} loading="lazy" decoding="async" referrerpolicy="no-referrer" onload={(e)=>imageLoaded(e,i)} onerror={()=>imageFailed(i)}/>{/if}
                     </div>
                 {/each}
             {:else}
-                <div class="reader-spread">
+                <div class="reader-spread" style={`--reader-pages:${ordered.length}`}>
                     {#each ordered as i (manifest.pages[i].page_id)}
-                        {@const p=manifest.pages[i]}
-                        <div class="reader-frame" style={`aspect-ratio:${p.width}/${p.height}`}>
+                        <div class="reader-frame">
                             {#if failed.has(i)}<div class="reader-state" role="alert">{labels.imageError}<Button label={labels.retry} onclick={()=>retry(i)}/></div>
-                            {:else}<img src={p.url} alt={labels.pageAlt.replace("{page}",String(i+1))} width={p.width} height={p.height} decoding="async" onerror={()=>imageFailed(i)}/>{/if}
+                            {:else}<img src={manifest.pages[i].url} alt={labels.pageAlt.replace("{page}",String(i+1))} width={manifest.pages[i].width} height={manifest.pages[i].height} loading="lazy" decoding="async" referrerpolicy="no-referrer" onload={(e)=>imageLoaded(e,i)} onerror={()=>imageFailed(i)}/>{/if}
                         </div>
                     {/each}
                 </div>
             {/if}
         </div>
-        <progress value={index+1} max={manifest.page_count} aria-label={labels.progress}></progress>
-        <nav class="reader-chapters" aria-label={labels.chapters}>
-            {#if previousChapter}<Button href={previousChapter} label={labels.previousChapter} variant="tonal" size="medium"/>{/if}
-            <Button href={bookURL} label={labels.chapters} variant="text" size="medium"/>
-            {#if nextChapter}<Button href={nextChapter} label={labels.nextChapter} variant="tonal" size="medium"/>{/if}
-        </nav>
     {/if}
+    <footer class:reader-hidden={hidden} inert={hidden}>
+        <progress max={manifest.page_count} value={index+1} aria-label={labels.progress}></progress>
+        <nav aria-label={labels.chapters}>
+            {#if previousChapter}<Button href={previousChapter} label={labels.previousChapter} variant="text"/>{/if}
+            <Button label={labels.previous} variant="tonal" disabled={index===0} onclick={()=>step(-1)}/>
+            <div class="reader-jump"><TextField type="number" label={labels.page} bind:value={jumpText} onfocus={()=>jumpFocused=true} onblur={()=>{jumpFocused=false;select((Number(jumpText)||1)-1);}} onkeydown={(e)=>{if(e.key==="Enter"){jumpFocused=false;select((Number(jumpText)||1)-1);}}}/><span aria-hidden="true">/ {manifest.page_count}</span></div>
+            <Button label={labels.next} variant="tonal" disabled={shown.at(-1)===manifest.page_count-1} onclick={()=>step(1)}/>
+            {#if nextChapter}<Button href={nextChapter} label={labels.nextChapter} variant="text"/>{/if}
+        </nav>
+    </footer>
 </section>
 <style>
-.manga-reader{color:var(--mc-on-surface);font:var(--m3e-type-body-lg);padding:var(--m3e-space-4);border-radius:var(--shape-corner-l);background:var(--mc-surface-container-low)}
-.reader-toolbar,.reader-chapters{display:flex;flex-wrap:wrap;align-items:center;gap:var(--m3e-space-2);margin-block-end:var(--m3e-space-3)}
-.reader-toolbar label{display:flex;align-items:center;gap:var(--m3e-space-2)}
-.reader-jump{display:flex;align-items:center;gap:var(--m3e-space-2);max-width:10rem}.reader-hidden{visibility:hidden;pointer-events:none}
-.reader-canvas{overflow:auto;touch-action:none;min-height:40dvh;max-height:calc(100dvh - 12rem);background:var(--mc-surface-container)}
-.reader-canvas:focus-visible{outline:2px solid var(--mc-primary);outline-offset:var(--m3e-space-1)}
-.reader-canvas.continuous{touch-action:pan-y;max-height:none}.reader-spread{display:flex;align-items:flex-start;justify-content:center;width:calc(100% * var(--reader-zoom));margin-inline:auto}
-.reader-frame{position:relative;flex:1;min-width:0;background:var(--mc-surface-container-high)}
-.continuous .reader-frame{width:calc(100% * var(--reader-zoom));margin-block-end:var(--m3e-space-2);margin-inline:auto;scroll-margin-block-start:var(--m3e-space-4)}
-.reader-frame img{width:100%;height:auto;display:block;user-select:none}
-.fit-height .reader-spread{width:max-content;margin-inline:auto}.fit-height .reader-frame img{max-height:calc((100dvh - 15rem) * var(--reader-zoom));width:auto;max-width:none}
-.reader-state{display:flex;gap:var(--m3e-space-3);flex-direction:column;align-items:center;justify-content:center;min-height:60dvh;padding:var(--m3e-space-4)}
-progress{display:block;width:100%;accent-color:var(--mc-primary);margin-block:var(--m3e-space-3)}
+.manga-reader{height:100%;display:flex;flex-direction:column;position:relative;background:var(--mc-surface);color:var(--mc-on-surface);isolation:isolate}
+header{display:flex;align-items:center;gap:var(--m3e-space-2);padding:var(--m3e-space-2);padding-top:max(var(--m3e-space-2),env(safe-area-inset-top));background:var(--mc-surface-container);z-index:2;min-width:0}
+h1{font:var(--m3e-type-title-md);margin:0;min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reader-action{min-height:48px;padding:var(--m3e-space-3);border-radius:var(--shape-corner-m);color:var(--mc-primary);font:var(--m3e-type-label-lg);cursor:pointer}
+.reader-settings{position:absolute;top:4.5rem;inset-inline:var(--m3e-space-3);z-index:3;display:flex;flex-wrap:wrap;align-items:center;gap:var(--m3e-space-3);max-height:60%;overflow:auto;padding:var(--m3e-space-4);background:var(--mc-surface-container-high);border:1px solid var(--mc-outline-variant);border-radius:var(--shape-corner-l);box-shadow:var(--elevation-2)}
+.reader-settings[hidden]{display:none}
+.reader-hidden{display:none}
+.reader-canvas{flex:1;min-height:0;overflow:auto;touch-action:none;overscroll-behavior:contain;outline-offset:-3px;background:var(--mc-surface-container-lowest)}
+.reader-canvas:focus-visible{outline:3px solid var(--mc-primary)}
+.reader-canvas.continuous{touch-action:pan-y pinch-zoom}
+.reader-spread{display:flex;align-items:center;justify-content:center;width:calc(100% * var(--reader-zoom));min-height:100%}
+.reader-spread .reader-frame{min-width:0;flex:1;align-self:center}
+.reader-frame img{width:100%;height:auto;display:block;user-select:none;object-fit:contain}
+.fit-height:not(.continuous) .reader-spread{height:calc(100% * var(--reader-zoom));width:max-content;min-width:100%;margin-inline:auto}
+.fit-height:not(.continuous) .reader-frame{height:100%;flex:0 1 auto}
+.fit-height:not(.continuous) .reader-frame img{height:100%;width:auto;max-width:calc(100dvw / var(--reader-pages) * var(--reader-zoom));object-fit:contain}
+.continuous .reader-frame{width:calc(min(100%, 70rem) * var(--reader-zoom));margin-inline:auto;margin-block-end:var(--m3e-space-2);scroll-margin-block-start:0}
+.reader-state{display:flex;flex:1;gap:var(--m3e-space-3);flex-direction:column;align-items:center;justify-content:center;min-height:12rem;padding:var(--m3e-space-4)}
+footer{background:var(--mc-surface-container);padding:var(--m3e-space-2);padding-bottom:max(var(--m3e-space-2),env(safe-area-inset-bottom))}
+nav{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:var(--m3e-space-2)}
+progress{display:block;width:100%;height:.25rem;accent-color:var(--mc-primary);margin-block-end:var(--m3e-space-2)}
+.reader-jump{display:flex;align-items:center;gap:var(--m3e-space-2);width:8rem}.reader-jump :global(.m3-text-field){min-width:0}
+.reader-jump span{white-space:nowrap}
+@media(max-width:600px){h1{font:var(--m3e-type-title-sm)}header{flex-wrap:wrap}header h1{order:-1;flex-basis:100%;text-align:center}.reader-settings{top:8rem}.reader-jump{width:7rem}}
 @media(prefers-reduced-motion:reduce){.reader-canvas{scroll-behavior:auto}}
 </style>
