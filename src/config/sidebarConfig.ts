@@ -85,7 +85,7 @@ export const sidebarConfig: SidebarConfig = withUserConfig("sidebar", {
 			enable: true,
 			slot: "sticky",
 			column: "secondary",
-			pages: ["post", "textbookChapter"],
+			pages: ["post"],
 		},
 	],
 });

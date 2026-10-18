@@ -1,4 +1,3 @@
-import { mangaSchema } from "./utils/manga-schema";
 import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
@@ -76,43 +75,8 @@ const momentsCollection = defineCollection({
 	}),
 });
 
-const textbookCollection = defineCollection({
-	loader: glob({ base: "./src/content/textbook", pattern: "**/*.md" }),
-	schema: z.object({
-		/* metadata.md describes its containing book; chapter files may omit frontmatter. */
-		title: z.string().optional().default(""),
-		description: z
-			.string()
-			.nullish()
-			.transform((value) => value ?? ""),
-		image: z
-			.string()
-			.nullish()
-			.transform((value) => value ?? ""),
-		category: z
-			.string()
-			.nullish()
-			.transform((value) => value ?? ""),
-		/* Numeric chapter order; decimals are allowed for insertion between chapters. */
-		order: z.number().optional().default(0),
-		published: z.date().optional(),
-		updated: z.date().optional(),
-		tags: z.array(z.string()).optional().default([]),
-		draft: z.boolean().optional().default(false),
-		cssclass: markdownClassSchema,
-		cssclasses: markdownClassSchema,
-	}),
-});
-
-const mangaCollection = defineCollection({
-	loader: glob({ base: "./src/content/manga", pattern: "**/*.md" }),
-	schema: mangaSchema,
-});
-
 export const collections = {
-	manga: mangaCollection,
 	posts: postsCollection,
 	spec: specCollection,
 	moments: momentsCollection,
-	textbook: textbookCollection,
 } as const;

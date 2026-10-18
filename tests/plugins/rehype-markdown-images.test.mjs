@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { after, before, test } from "node:test";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { basename, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 
 import {
 	matchesNoReferrerDomain,
@@ -21,7 +25,22 @@ async function render(markdown) {
 	return code;
 }
 
-const IMAGE = "/images/albums/AcgExample/01.webp";
+const publicImages = fileURLToPath(
+	new URL("../../public/images/", import.meta.url),
+);
+mkdirSync(publicImages, { recursive: true });
+const fixture = mkdtempSync(join(publicImages, ".markdown-image-"));
+const IMAGE = "/images/" + basename(fixture) + "/sample.png";
+before(async () => {
+	await sharp({
+		create: { width: 120, height: 80, channels: 3, background: "#eeeeee" },
+	})
+		.png()
+		.toFile(join(fixture, "sample.png"));
+});
+after(() => {
+	rmSync(fixture, { recursive: true, force: true });
+});
 
 test("parses the w-N% width token out of alt text", () => {
 	assert.deepEqual(parseMarkdownImageAlt("A demo image w-50%"), {

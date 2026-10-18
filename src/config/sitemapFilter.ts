@@ -10,7 +10,6 @@ import { projectsConfig } from "./projectsConfig.ts";
 import { siteConfig } from "./siteConfig.ts";
 import { skillsConfig } from "./skillsConfig.ts";
 import { timelineConfig } from "./timelineConfig.ts";
-import { textbooksConfig } from "./textbooksConfig.ts";
 
 /** 获取所有被配置 enable: false 关闭的页面标识清单 */
 export function getDisabledPages(): string[] {
@@ -23,7 +22,6 @@ export function getDisabledPages(): string[] {
 	if (aboutConfig.enable === false) disabled.push("about");
 	if (friendsConfig.enable === false) disabled.push("friends");
 	if (momentsConfig.enable === false) disabled.push("moments");
-	if (textbooksConfig.enable === false) disabled.push("textbooks");
 	if (albumsConfig.enable === false) disabled.push("albums");
 	if (compassConfig.enable === false) disabled.push("compass");
 	return disabled;

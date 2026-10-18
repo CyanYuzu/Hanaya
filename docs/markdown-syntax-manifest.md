@@ -68,6 +68,8 @@ $manifest.syntaxes | Where-Object id -eq "file-tree" | ConvertTo-Json -Depth 10
 
 所有文件路径必须相对仓库根目录、使用 `/`，并指向真实文件。`network` 必须同时记录第三方请求和作者显式媒体 URL；空数组表示语法自身不会请求网络。
 
+作者指南保存在主题自有的 `docs/markdown-guides/`，技能入口保存在 `.agents/skills/`。`docs` 不应指向 `src/content/`：该目录会被个人内容仓同步覆盖或裁剪，不能作为主题文档与 CI 校验的依赖。
+
 ## 5. 新语法准入流程
 
 1. 在独立演示文章中定义真实使用场景，不修改旧文章来承载新展示；

@@ -1,6 +1,5 @@
 import { visit } from "unist-util-visit";
 import { createMarkdownSyntaxSnapshot } from "../utils/markdown-syntaxes.mjs";
-import { ELEGANTBOOK_CALLOUT_TYPES } from "./markdown/remark-admonitions.mjs";
 import { getAcFunEmbedData } from "./markdown/core/acfun.mjs";
 import { getArtPlayerEmbedData } from "./markdown/core/artplayer.mjs";
 import { getAudioReaderEmbedData } from "./markdown/core/audio-reader.mjs";
@@ -16,7 +15,6 @@ const ADMONITION_DIRECTIVES = new Set([
 	"warning",
 	"caution",
 	"admonition-details",
-	...ELEGANTBOOK_CALLOUT_TYPES.map((type) => `eb-${type}`),
 ]);
 
 function getDirectiveLabel(children = []) {
@@ -144,7 +142,10 @@ export function remarkFeatureProbes() {
 			if (node.type === "containerDirective" && node.name === "tabs") {
 				syntaxes.add("option-groups");
 			}
-			if (node.type === "containerDirective" && ["field", "field-group"].includes(node.name)) {
+			if (
+				node.type === "containerDirective" &&
+				["field", "field-group"].includes(node.name)
+			) {
 				syntaxes.add("fields");
 			}
 		});

@@ -12,7 +12,11 @@ import {
 } from "./load-config.ts";
 import { shironesOverlay } from "./overlay.ts";
 import { normalisePath, resolvePaths } from "./paths.ts";
-import { buildOverrideRegistry, createOverlayTargets, type OverrideRegistryRef } from "./registry.ts";
+import {
+	buildOverrideRegistry,
+	createOverlayTargets,
+	type OverrideRegistryRef,
+} from "./registry.ts";
 import { collectRoutes, filterRoutes } from "./routes.ts";
 import { shironesSsrNodeShims } from "./ssr-node-shims.ts";
 import type { ResolvedShironesPaths, ShironesOptions } from "./types.ts";
@@ -169,7 +173,9 @@ export function shirones(options: ShironesOptions = {}): AstroIntegration {
 					);
 					if (total > 0) {
 						logger.info(
-							`[overrides] ${total} registered (${Object.entries(registry.counts)
+							`[overrides] ${total} registered (${Object.entries(
+								registry.counts,
+							)
 								.map(([label, n]) => `${label}:${n}`)
 								.join(", ")})`,
 						);
@@ -184,7 +190,11 @@ export function shirones(options: ShironesOptions = {}): AstroIntegration {
 				}
 
 				// ── 1. Load user configuration (Node side) ──────────────────────
-				const siteModule = await loadConfigModule(paths, "siteConfig", registryRef);
+				const siteModule = await loadConfigModule(
+					paths,
+					"siteConfig",
+					registryRef,
+				);
 				const siteConfig = siteModule.siteConfig as {
 					site?: string;
 					base?: string;
@@ -194,12 +204,8 @@ export function shirones(options: ShironesOptions = {}): AstroIntegration {
 					options.bundledIntegrations === false
 						? null
 						: await loadConfigModule(paths, "sitemapFilter", registryRef);
-				const loadedSitemapFilter =
-					sitemapFilterModule?.isSitemapPageAllowed;
-				if (
-					sitemapFilterModule &&
-					typeof loadedSitemapFilter !== "function"
-				) {
+				const loadedSitemapFilter = sitemapFilterModule?.isSitemapPageAllowed;
+				if (sitemapFilterModule && typeof loadedSitemapFilter !== "function") {
 					throw new Error(
 						'[shirones] Config module "sitemapFilter" must export `isSitemapPageAllowed(pageUrl)`.',
 					);
@@ -209,19 +215,31 @@ export function shirones(options: ShironesOptions = {}): AstroIntegration {
 						? (loadedSitemapFilter as (pageUrl: string) => boolean)
 						: undefined;
 
-				const sidebarModule = await loadConfigModule(paths, "sidebarConfig", registryRef);
+				const sidebarModule = await loadConfigModule(
+					paths,
+					"sidebarConfig",
+					registryRef,
+				);
 				const sidebarConfig = sidebarModule.sidebarConfig as {
 					enable?: boolean;
 					components?: { type: string; enable: boolean }[];
 				};
 
-				const musicModule = await loadConfigModule(paths, "musicConfig", registryRef);
+				const musicModule = await loadConfigModule(
+					paths,
+					"musicConfig",
+					registryRef,
+				);
 				const musicConfig = musicModule.musicConfig;
 				const resolveMusicOptions = musicModule.resolveMusicOptions as (
 					c: unknown,
 				) => unknown;
 
-				const umamiModule = await loadConfigModule(paths, "umamiConfig", registryRef);
+				const umamiModule = await loadConfigModule(
+					paths,
+					"umamiConfig",
+					registryRef,
+				);
 				const umamiConfig = umamiModule.umamiConfig as { shareUrl: string };
 				const resolveUmamiOptions = umamiModule.resolveUmamiOptions as (
 					c: unknown,
@@ -454,7 +472,11 @@ async function createBundledIntegrations(
 			})
 		: null;
 
-	const ecModule = await loadConfigModule(paths, "expressiveCodeConfig", registryRef);
+	const ecModule = await loadConfigModule(
+		paths,
+		"expressiveCodeConfig",
+		registryRef,
+	);
 	const expressiveCodeConfig = ecModule.expressiveCodeConfig as {
 		theme: string;
 		lightTheme?: string;
@@ -484,7 +506,7 @@ async function createBundledIntegrations(
 		...(oddmiscIntegration ? [oddmiscIntegration] : []),
 		swup({
 			theme: false,
-			ignore: ['a[href="#"], a[data-manga-reader-link], [data-manga-reader] a'],
+			ignore: ['a[href="#"]'],
 			animationClass: "transition-swup-",
 			containers: ["main", "#toc"],
 			smoothScrolling: true,
@@ -574,9 +596,7 @@ async function createBundledIntegrations(
 			},
 		}),
 		sitemap(
-			options.sitemapFilter
-				? { filter: options.sitemapFilter }
-				: undefined,
+			options.sitemapFilter ? { filter: options.sitemapFilter } : undefined,
 		),
 		mdx({ syntaxHighlight: false, optimize: true }),
 	];

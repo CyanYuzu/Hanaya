@@ -23,6 +23,13 @@ git diff --check
 
 Do not run `astro check` in parallel with content-sync tests. Astro check triggers content synchronization, while `tests/content/*` uses temporary repository fixtures; concurrent runs can cause false failures such as empty stderr. Run the complete unit suite separately.
 
+## Content-independent fixtures
+
+- Keep authoring guides in `docs/markdown-guides/` and point the syntax manifest and skills there. The materialized `src/content/` tree belongs to the external content repository and may contain none of the upstream examples.
+- Resolver tests must supply explicit item fixtures through their existing `customItems` argument instead of expecting named projects, skills or devices in the user's data.
+- Image tests create a real image in a temporary public directory and remove it afterward; they must not depend on an example album being published.
+- Test an empty generated config module from the generator output. The current `src/user/user-config.ts` is allowed to contain real content-repository overrides and is not an empty-module fixture.
+
 ## GitHub Actions diagnosis
 
 Inspect the run summary first, then the failed job logs:
@@ -39,3 +46,7 @@ Reproduce the failed step locally with the same Node major version and command. 
 - Review `git diff` and confirm locale files contain only required import or formatting changes.
 - Stage paths explicitly. Never use `git add -A`, which can include `Shirone-Content/`, temporary fixtures, or build output.
 - Use a conventional commit such as `fix(markdown): support direct Node markdown tests`.
+
+## Declaration-isolation check
+
+`pnpm type-check` additionally enables TypeScript's `--isolatedDeclarations`. This is separate from the current Actions diagnostics, unit-test and Node 22/24 build jobs. During the 2026-10-18 maintenance it still reported missing explicit declaration annotations in constants, collection definitions, integration helpers and utilities. Astro diagnostics and successful Actions jobs must not be described as proof that this additional command passed.

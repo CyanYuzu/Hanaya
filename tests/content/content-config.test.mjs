@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
+import { ModuleKind, transpileModule } from "typescript";
 import {
 	CONFIG_DOMAINS,
 	DOMAIN_BY_FILE,
@@ -159,7 +160,10 @@ describe("读取内容仓配置", () => {
 			"site.yaml": "- 我是个数组\n",
 		});
 		try {
-			expectFailure(() => readConfigOverrides(directory), /must be a key-value mapping/i);
+			expectFailure(
+				() => readConfigOverrides(directory),
+				/must be a key-value mapping/i,
+			);
 		} finally {
 			rmSync(base, { recursive: true, force: true });
 		}
@@ -181,7 +185,10 @@ describe("读取内容仓配置", () => {
 			"site.yaml": "banner: &loop\n  homeText: *loop\n",
 		});
 		try {
-			expectFailure(() => readConfigOverrides(directory), /circular reference/i);
+			expectFailure(
+				() => readConfigOverrides(directory),
+				/circular reference/i,
+			);
 		} finally {
 			rmSync(base, { recursive: true, force: true });
 		}
@@ -200,17 +207,18 @@ describe("读取内容仓配置", () => {
 });
 
 describe("生成覆盖层模块", () => {
-	it("没有覆盖时与仓库里已提交的空模块完全一致", () => {
-		const committed = readFileSync(
-			new URL(`../../${GENERATED_CONFIG_FILE}`, import.meta.url),
-			"utf8",
+	it("没有覆盖时生成可独立执行的空模块，不依赖当前内容仓配置", async () => {
+		const { source } = generateModule([]);
+		assert.equal(source, EMPTY_MODULE);
+		const { outputText } = transpileModule(source, {
+			compilerOptions: { module: ModuleKind.ESNext },
+		});
+		const generated = await import(
+			"data:text/javascript;base64," +
+				Buffer.from(outputText).toString("base64")
 		);
-		// 没有这条一致性，local 模式下重新生成就会弄脏 git status。
-		// 比对前抹平换行：Windows 的 core.autocrlf 会把签出的文件变成 CRLF，
-		// 而生成器一律写 LF —— git 自己会归一化，这里也照做。
-		const normalize = (text) => text.split("\r\n").join("\n");
-		assert.equal(generateModule([]).source, EMPTY_MODULE);
-		assert.equal(normalize(committed), EMPTY_MODULE);
+		assert.deepEqual(generated.userConfigOverrides, {});
+		assert.deepEqual(generated.userConfigSources, []);
 	});
 
 	it("按领域标注类型，并把类型导入合并去重", () => {

@@ -27,10 +27,7 @@ import {
 import { StepsComponent } from "../plugins/markdown/containers/rehype-steps.mjs";
 import { remarkAbbreviations } from "../plugins/markdown/remark-abbreviations.mjs";
 import { remarkAcFun } from "../plugins/markdown/remark-acfun.mjs";
-import {
-	ELEGANTBOOK_CALLOUT_TYPES,
-	remarkAdmonitions,
-} from "../plugins/markdown/remark-admonitions.mjs";
+import { remarkAdmonitions } from "../plugins/markdown/remark-admonitions.mjs";
 import { remarkArtPlayer } from "../plugins/markdown/remark-artplayer.mjs";
 import { remarkAudioReader } from "../plugins/markdown/remark-audio-reader.mjs";
 import { remarkBilibili } from "../plugins/markdown/remark-bilibili.mjs";
@@ -140,13 +137,6 @@ export const siteRehypePlugins = [
 				caution: (x, y) => AdmonitionComponent(x, y, "caution"),
 				warning: (x, y) => AdmonitionComponent(x, y, "warning"),
 				"admonition-details": (x, y) => AdmonitionComponent(x, y, "details"),
-				...Object.fromEntries(
-					ELEGANTBOOK_CALLOUT_TYPES.map((calloutType) => {
-						const type = `eb-${calloutType}`;
-						return [type, (properties, children) =>
-							AdmonitionComponent(properties, children, type)];
-					}),
-				),
 				"m3-mark": MarkerComponent,
 				spoiler: SpoilerComponent,
 			},

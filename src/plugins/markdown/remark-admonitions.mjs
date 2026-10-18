@@ -1,26 +1,3 @@
-export const ELEGANTBOOK_CALLOUT_TYPES = Object.freeze([
-	"definition",
-	"theorem",
-	"lemma",
-	"corollary",
-	"proposition",
-	"axiom",
-	"postulate",
-	"example",
-	"exercise",
-	"problem",
-	"solution",
-	"proof",
-	"note",
-	"remark",
-	"assumption",
-	"conclusion",
-	"property",
-	"custom",
-	"introduction",
-	"problemset",
-]);
-
 const ADMONITION_TYPE_NAMES = [
 	"note",
 	"info",
@@ -29,7 +6,6 @@ const ADMONITION_TYPE_NAMES = [
 	"warning",
 	"caution",
 	"details",
-	...ELEGANTBOOK_CALLOUT_TYPES.map((type) => `eb-${type}`),
 ];
 const ADMONITION_TYPES = ADMONITION_TYPE_NAMES.join("|");
 const OBSIDIAN_CALLOUT =
@@ -41,9 +17,6 @@ const STANDARD_CALLOUT_TYPES = new Set([
 	"warning",
 	"caution",
 ]);
-const ELEGANTBOOK_CALLOUT_NAMES = new Set(
-	ELEGANTBOOK_CALLOUT_TYPES.map((type) => `eb-${type}`),
-);
 const CONTAINER_OPENER = new RegExp(
 	`^([\\t ]{0,3})(:{3,})[\\t ]*(${ADMONITION_TYPES})(?![\\w-])(.*)$`,
 	"i",
@@ -167,10 +140,7 @@ function normalizeObsidianCallout(node) {
 
 	const [, rawType, rawMetadata, fold, rawTitle = ""] = match;
 	const type = rawType.toLowerCase();
-	if (
-		!STANDARD_CALLOUT_TYPES.has(type) &&
-		!ELEGANTBOOK_CALLOUT_NAMES.has(type)
-	) {
+	if (!STANDARD_CALLOUT_TYPES.has(type)) {
 		return null;
 	}
 

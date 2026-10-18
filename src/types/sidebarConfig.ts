@@ -32,10 +32,6 @@ export type SidebarPage =
 	| "archive" // 归档
 	| "friends" // 友链
 	| "moments" // 动态
-	| "manga"
-	| "manga-reader"
-	| "textbooks" // 课本索引与书本页
-	| "textbookChapter" // 课本章节详情
 	| "anime" // 番剧收藏
 	| "compass" // 站点罗盘
 	| "skills" // 技能

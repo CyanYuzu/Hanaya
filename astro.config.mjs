@@ -160,7 +160,7 @@ export default defineConfig({
 			...(umamiIntegration ? [umamiIntegration] : []),
 			swup({
 			theme: false,
-			ignore: 'a[href="#"], a[data-manga-reader-link], [data-manga-reader] a',
+			ignore: 'a[href="#"]',
 			animationClass: "transition-swup-",
 			containers: ["main", "#toc"],
 			smoothScrolling: true,
